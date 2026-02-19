@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compound Growth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f8f9fa;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 24px;
+            color: #1a5f7a;
+            text-align: center;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            background: #1976D2;
+            transform: scale(1.1);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #2196F3;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            background: #1976D2;
+            transform: scale(1.1);
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.3s;
+            border-radius: 26px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        .toggle input:checked + .toggle-slider {
+            background-color: #4CAF50;
+        }
+
+        .toggle input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-card.primary {
+            background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+        }
+
+        .stat-card.success {
+            background: linear-gradient(135deg, #4CAF50 0%, #388E3C 100%);
+        }
+
+        .stat-card.info {
+            background: linear-gradient(135deg, #00BCD4 0%, #0097A7 100%);
+        }
+
+        .stat-card.warning {
+            background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+        }
+
+        .stat-card.comparison {
+            background: linear-gradient(135deg, #FF5722 0%, #E64A19 100%);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.9);
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .stat-subtext {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.8);
+            margin-top: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Compound Growth Calculator</h1>
+
+        <div class="controls">
+            <div class="control-group">
+                <label for="monthly-contribution">Monthly Contribution</label>
+                <div class="input-row">
+                    <input type="range" id="monthly-contribution-slider" min="50" max="2000" value="300" step="50">
+                    <input type="number" id="monthly-contribution" min="50" max="2000" value="300" step="50">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="annual-return">Annual Return Rate (%)</label>
+                <div class="input-row">
+                    <input type="range" id="annual-return-slider" min="1" max="15" value="7" step="0.5">
+                    <input type="number" id="annual-return" min="1" max="15" value="7" step="0.5">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="starting-age">Starting Age</label>
+                <div class="input-row">
+                    <input type="range" id="starting-age-slider" min="18" max="45" value="22" step="1">
+                    <input type="number" id="starting-age" min="18" max="45" value="22" step="1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="years-invest">Years to Invest</label>
+                <div class="input-row">
+                    <input type="range" id="years-invest-slider" min="5" max="45" value="40" step="1">
+                    <input type="number" id="years-invest" min="5" max="45" value="40" step="1">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label>Compare Delayed Start</label>
+                <div class="toggle-container">
+                    <label class="toggle">
+                        <input type="checkbox" id="compare-toggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span style="font-size: 12px; color: #666;">Start 10 years later</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="growthChart"></canvas>
+        </div>
+
+        <div class="stats" id="stats-container">
+            <!-- Stats will be dynamically generated -->
+        </div>
+    </div>
+
+    <script>
+        // Initialize chart
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        let chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Starting Now',
+                    data: [],
+                    borderColor: '#2196F3',
+                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                label += formatCurrency(context.parsed.y);
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '$' + (value / 1000).toFixed(0) + 'k';
+                            }
+                        },
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)',
+                        }
+                    }
+                },
+                animation: {
+                    duration: 750,
+                    easing: 'easeInOutQuart'
+                }
+            }
+        });
+
+        // Get all input elements
+        const monthlyContributionSlider = document.getElementById('monthly-contribution-slider');
+        const monthlyContribution = document.getElementById('monthly-contribution');
+        const annualReturnSlider = document.getElementById('annual-return-slider');
+        const annualReturn = document.getElementById('annual-return');
+        const startingAgeSlider = document.getElementById('starting-age-slider');
+        const startingAge = document.getElementById('starting-age');
+        const yearsInvestSlider = document.getElementById('years-invest-slider');
+        const yearsInvest = document.getElementById('years-invest');
+        const compareToggle = document.getElementById('compare-toggle');
+
+        // Sync slider and number inputs
+        function syncInputs(slider, numberInput) {
+            slider.addEventListener('input', () => {
+                numberInput.value = slider.value;
+                updateChart();
+            });
+            numberInput.addEventListener('input', () => {
+                slider.value = numberInput.value;
+                updateChart();
+            });
+        }
+
+        syncInputs(monthlyContributionSlider, monthlyContribution);
+        syncInputs(annualReturnSlider, annualReturn);
+        syncInputs(startingAgeSlider, startingAge);
+        syncInputs(yearsInvestSlider, yearsInvest);
+
+        compareToggle.addEventListener('change', updateChart);
+
+        // Format currency
+        function formatCurrency(value) {
+            return '$' + Math.round(value).toLocaleString('en-US');
+        }
+
+        // Calculate compound growth
+        function calculateGrowth(monthlyPmt, annualRate, years) {
+            const monthlyRate = annualRate / 100 / 12;
+            const months = years * 12;
+            const values = [0];
+
+            for (let month = 1; month <= months; month++) {
+                const previousValue = values[month - 1];
+                const newValue = (previousValue + monthlyPmt) * (1 + monthlyRate);
+                values.push(newValue);
+            }
+
+            return values;
+        }
+
+        // Update chart and stats
+        function updateChart() {
+            const pmt = parseFloat(monthlyContribution.value);
+            const rate = parseFloat(annualReturn.value);
+            const age = parseInt(startingAge.value);
+            const years = parseInt(yearsInvest.value);
+            const compare = compareToggle.checked;
+
+            // Calculate primary scenario
+            const values = calculateGrowth(pmt, rate, years);
+            const labels = [];
+            for (let i = 0; i <= years; i++) {
+                labels.push(age + i);
+            }
+
+            // Update chart data
+            chart.data.labels = labels;
+            chart.data.datasets[0].data = values;
+
+            // Add or remove comparison dataset
+            if (compare) {
+                const delayedYears = Math.max(0, years - 10);
+                const delayedValues = calculateGrowth(pmt, rate, delayedYears);
+
+                // Pad the beginning with zeros
+                const paddedDelayedValues = new Array(10 * 12 + 1).fill(0).concat(delayedValues.slice(1));
+
+                if (chart.data.datasets.length === 1) {
+                    chart.data.datasets.push({
+                        label: 'Starting 10 Years Later',
+                        data: paddedDelayedValues,
+                        borderColor: '#FF5722',
+                        backgroundColor: 'rgba(255, 87, 34, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        pointHoverRadius: 6,
+                    });
+                } else {
+                    chart.data.datasets[1].data = paddedDelayedValues;
+                }
+            } else {
+                if (chart.data.datasets.length > 1) {
+                    chart.data.datasets.pop();
+                }
+            }
+
+            chart.update();
+
+            // Update stats
+            updateStats(pmt, rate, years, values, compare);
+        }
+
+        function updateStats(pmt, rate, years, values, compare) {
+            const totalContributions = pmt * years * 12;
+            const finalValue = values[values.length - 1];
+            const totalInterest = finalValue - totalContributions;
+            const interestPercentage = (totalInterest / finalValue) * 100;
+
+            let statsHTML = `
+                <div class="stat-card primary">
+                    <div class="stat-label">Total Contributions</div>
+                    <div class="stat-value">${formatCurrency(totalContributions)}</div>
+                    <div class="stat-subtext">${formatCurrency(pmt)} × ${years * 12} months</div>
+                </div>
+                <div class="stat-card success">
+                    <div class="stat-label">Total Interest Earned</div>
+                    <div class="stat-value">${formatCurrency(totalInterest)}</div>
+                    <div class="stat-subtext">${interestPercentage.toFixed(1)}% of final value</div>
+                </div>
+                <div class="stat-card info">
+                    <div class="stat-label">Final Portfolio Value</div>
+                    <div class="stat-value">${formatCurrency(finalValue)}</div>
+                    <div class="stat-subtext">At age ${parseInt(startingAge.value) + years}</div>
+                </div>
+            `;
+
+            if (compare) {
+                const delayedYears = Math.max(0, years - 10);
+                const delayedValues = calculateGrowth(pmt, rate, delayedYears);
+                const delayedFinalValue = delayedValues[delayedValues.length - 1];
+                const difference = finalValue - delayedFinalValue;
+
+                statsHTML += `
+                    <div class="stat-card comparison">
+                        <div class="stat-label">Cost of Waiting 10 Years</div>
+                        <div class="stat-value">${formatCurrency(difference)}</div>
+                        <div class="stat-subtext">Lost by delaying start</div>
+                    </div>
+                `;
+            }
+
+            document.getElementById('stats-container').innerHTML = statsHTML;
+        }
+
+        // Initial update
+        updateChart();
+    </script>
+</body>
+</html>

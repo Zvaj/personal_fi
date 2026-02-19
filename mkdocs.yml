@@ -1,1 +1,40 @@
-site_name: My Docs
+site_name: Personal Finance for Young Adults (2025-2026)
+nav:
+  - Course Description: course-description.md
+  - Chapters:
+    - List of Chapters: chapters/index.md
+    - 1. Financial Mindset & Money Psychology: chapters/01-financial-mindset/index.md
+    - 2. Budgeting & Cash Flow Management: chapters/02-budgeting/index.md
+    - 3. Banking Smart: chapters/03-banking-smart/index.md
+    - 4. Building & Protecting Your Credit: chapters/04-credit/index.md
+    - 5. Emergency Funds & Financial Safety Nets: chapters/05-emergency-funds/index.md
+    - 6. Debt Elimination Strategies: chapters/06-debt-elimination/index.md
+    - 7. Taxes & Tax Optimization: chapters/07-taxes/index.md
+    - 8. Introduction to Investing: chapters/08-intro-to-investing/index.md
+    - 9. Stock Market Fundamentals: chapters/09-stock-market/index.md
+    - 10. Roth IRA & Retirement Accounts: chapters/10-roth-ira/index.md
+    - 11. 401(k) & Employer Benefits: chapters/11-401k/index.md
+    - 12. Passive Income Streams: chapters/12-passive-income/index.md
+    - 13. Real Estate Basics: chapters/13-real-estate/index.md
+    - 14. Side Hustles & Income Growth: chapters/14-side-hustles/index.md
+    - 15. Cryptocurrency & Alternative Investments: chapters/15-cryptocurrency/index.md
+    - 16. Insurance & Risk Protection: chapters/16-insurance/index.md
+    - 17. Financial Independence & FIRE Movement: chapters/17-fire-movement/index.md
+    - 18. Behavioral Finance & Avoiding Scams: chapters/18-behavioral-finance/index.md
+    - 19. Estate Planning & Protecting Wealth: chapters/19-estate-planning/index.md
+    - 20. Building Generational Wealth: chapters/20-generational-wealth/index.md
+    - 21. Negotiating Salary & Income Optimization: chapters/21-salary-negotiation/index.md
+    - 22. Financial Tools & Apps: chapters/22-financial-tools/index.md
+  - FAQ: faq.md
+  - Glossary: glossary.md
+  - Learning Graph:
+    - Introduction: learning-graph/index.md
+    - Course Description Assessment: learning-graph/course-description-assessment.md
+    - Concept Enumeration: learning-graph/concept-list.md
+    - Graph Quality Analysis: learning-graph/quality-metrics.md
+    - Concept Taxonomy: learning-graph/concept-taxonomy.md
+    - Taxonomy Distribution Report: learning-graph/taxonomy-distribution.md
+    - FAQ Quality Report: learning-graph/faq-quality-report.md
+    - FAQ Coverage Gaps: learning-graph/faq-coverage-gaps.md
+    - Book Metrics: learning-graph/book-metrics.md
+    - Chapter Metrics: learning-graph/chapter-metrics.md

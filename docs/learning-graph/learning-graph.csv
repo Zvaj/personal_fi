@@ -1,0 +1,206 @@
+ConceptID,ConceptLabel,Dependencies,TaxonomyID
+1,Personal Finance,,FOUND
+2,Money Mindset,1,MIND
+3,Money Scripts,2,MIND
+4,Financial Goals,1|2,MIND
+5,SMART Goals,4,MIND
+6,Net Worth,7|8,MIND
+7,Assets,1,FOUND
+8,Liabilities,1,FOUND
+9,Income,1,FOUND
+10,Expenses,1,FOUND
+11,Financial Habits,2|4,MIND
+12,Budget,9|10,BUDG
+13,Cash Flow,9|10|12,BUDG
+14,50/30/20 Rule,12|15,BUDG
+15,Needs vs Wants,10,BUDG
+16,Zero-Based Budgeting,12|13,BUDG
+17,Pay Yourself First,12|11,BUDG
+18,Budgeting Apps,12|20,TOOLS
+19,Irregular Income Budget,12|9,BUDG
+20,Expense Tracking,10|12,BUDG
+21,Checking Account,9,BANK
+22,Savings Account,9|21,BANK
+23,High-Yield Savings,22,BANK
+24,Online Banking,21|22,BANK
+25,Bank Fees,21|22,BANK
+26,Direct Deposit,9|21,BANK
+27,FDIC Insurance,21|22,BANK
+28,Digital Payments,21|24,BANK
+29,Credit Score,1,CRED
+30,FICO Score,29,CRED
+31,Credit Report,29,CRED
+32,Credit History,29|33,CRED
+33,Credit Card,29,CRED
+34,Credit Utilization,33|29,CRED
+35,Authorized User,33|32,CRED
+36,Credit Monitoring,29|31,CRED
+37,Credit Dispute,31|36,CRED
+38,Annual Credit Report,31,CRED
+39,Emergency Fund,22|12,SAFE
+40,Starter Emergency Fund,39,SAFE
+41,Three Month Expenses,39|10,SAFE
+42,Six Month Expenses,41,SAFE
+43,Financial Safety Net,39|155,SAFE
+44,Sinking Fund,22|12,SAFE
+45,Debt,8|47,DEBT
+46,Good Debt vs Bad Debt,45,DEBT
+47,Interest Rate,1,FOUND
+48,Compound Interest,47,FOUND
+49,Simple Interest,47,FOUND
+50,Annual Percentage Rate,47|33,DEBT
+51,Minimum Payment Trap,45|48|33,DEBT
+52,Debt Snowball Method,45|58,DEBT
+53,Debt Avalanche Method,45|47|58,DEBT
+54,Student Loans,45|47,DEBT
+55,Loan Refinancing,45|47|54,DEBT
+56,Debt Consolidation,45|47,DEBT
+57,Debt-to-Income Ratio,45|9,DEBT
+58,Payoff Timeline,45|47,DEBT
+59,Taxes,9,TAX
+60,Tax Brackets,59,TAX
+61,Marginal Tax Rate,60,TAX
+62,Federal Income Tax,59|60,TAX
+63,State Income Tax,59,TAX
+64,FICA Taxes,59|9,TAX
+65,W-2 Form,59|9,TAX
+66,W-4 Form,59|65,TAX
+67,1099 Form,59|9,TAX
+68,Tax Deductions,59|62,TAX
+69,Standard Deduction,68,TAX
+70,Itemized Deductions,68,TAX
+71,Tax Credits,59|62,TAX
+72,Tax Refund,59|65,TAX
+73,Tax Filing,59|65|69,TAX
+74,Tax-Advantaged Accounts,59|103|115,TAX
+75,Investing,48|77,INVST
+76,Risk vs Return,75,INVST
+77,Time Value of Money,48,FOUND
+78,Inflation,1|77,FOUND
+79,Purchasing Power,78,INVST
+80,Stock,75|90,INVST
+81,Bond,75,INVST
+82,Mutual Fund,75|80|81,INVST
+83,Exchange-Traded Fund,82,INVST
+84,Index Fund,82,INVST
+85,Expense Ratio,82|83,INVST
+86,Diversification,75|76,INVST
+87,Asset Allocation,75|76,INVST
+88,Portfolio,87|86,INVST
+89,Brokerage Account,75,INVST
+90,Stock Market,75,STMKT
+91,S&P 500,90|84,STMKT
+92,Dow Jones,90,STMKT
+93,Market Capitalization,80|90,STMKT
+94,Bull vs Bear Market,90,STMKT
+95,Stock Exchange,90,STMKT
+96,Dollar-Cost Averaging,75|84,STMKT
+97,Buy and Hold Strategy,75|84|96,STMKT
+98,Market Timing Myth,90|96,STMKT
+99,Investing vs Gambling,75|90,STMKT
+100,Individual Stocks,80|90,STMKT
+101,Dividend,80|100,STMKT
+102,Capital Gains,80|100,STMKT
+103,Roth IRA,75|106,RETIRE
+104,Traditional IRA,75|107,RETIRE
+105,IRA Contribution Limits,103|104,RETIRE
+106,Tax-Free Growth,48|59,RETIRE
+107,Tax-Deferred Growth,48|59,RETIRE
+108,Required Distributions,104|107,RETIRE
+109,Roth Conversion,103|104,RETIRE
+110,Investment Selection,75|84|112,RETIRE
+111,Target Date Fund,82|110,RETIRE
+112,Three-Fund Portfolio,84|87,RETIRE
+113,Fidelity,89|103,TOOLS
+114,Vanguard,89|103,TOOLS
+115,401(k),9|75,RETIRE
+116,Employer Match,9|115,RETIRE
+117,Vesting Schedule,116,RETIRE
+118,Roth 401(k),115|106,RETIRE
+119,401(k) Rollover,115|103,RETIRE
+120,HSA Account,59|106|68|155,RETIRE
+121,Triple Tax Advantage,120,RETIRE
+122,Employee Benefits,9|116|155,EMPBEN
+123,Open Enrollment,122|155,EMPBEN
+124,Passive Income,9|75,PASSINC
+125,Dividend Investing,101|124,PASSINC
+126,Rental Income,124|132,PASSINC
+127,Digital Products,124|141,PASSINC
+128,Content Creation Income,124|141,PASSINC
+129,Royalties,124,PASSINC
+130,Income Streams,9|124,PASSINC
+131,Active vs Passive Income,9|124,PASSINC
+132,Real Estate,7|75,REALES
+133,Renting vs Buying,132|134,REALES
+134,Mortgage,132|47|48,REALES
+135,Down Payment,134|22,REALES
+136,PMI Insurance,134|135,REALES
+137,First-Time Homebuyer,132|134|135,REALES
+138,House Hacking,132|126,REALES
+139,Closing Costs,134,REALES
+140,Home Equity,134|7,REALES
+141,Side Hustle,9|11,INCOME
+142,Freelancing,141,INCOME
+143,Gig Economy,141,INCOME
+144,Self-Employment Tax,141|59|67,INCOME
+145,Scaling a Business,141,INCOME
+146,Hourly Rate Evaluation,141|9,INCOME
+147,Cryptocurrency,75|150,ALTINV
+148,Bitcoin,147,ALTINV
+149,Ethereum,147,ALTINV
+150,Blockchain,1,ALTINV
+151,Crypto Volatility,147|76,ALTINV
+152,Portfolio Allocation,88|147,ALTINV
+153,NFTs,147|150,ALTINV
+154,Crypto Exchanges,147,ALTINV
+155,Health Insurance,1,INSUR
+156,Employer Health Plan,155|122,INSUR
+157,Health Marketplace,155,INSUR
+158,Parents Plan Until 26,155,INSUR
+159,Auto Insurance,1,INSUR
+160,Renters Insurance,1,INSUR
+161,Life Insurance,1|187,INSUR
+162,Term vs Whole Life,161,INSUR
+163,Disability Insurance,9|1,INSUR
+164,Insurance Deductible,155|159,INSUR
+165,Insurance Premium,155|159,INSUR
+166,Financial Independence,6|174|75,FIRE
+167,FIRE Movement,166,FIRE
+168,FI Number,166|10,FIRE
+169,The 4% Rule,167|168,FIRE
+170,Lean FIRE,167|168,FIRE
+171,Fat FIRE,167|168,FIRE
+172,Barista FIRE,167|168,FIRE
+173,Coast FIRE,167|48,FIRE
+174,Savings Rate,9|10|17,FIRE
+175,Early Retirement,167|115|103,FIRE
+176,Behavioral Finance,2|75,BEHAV
+177,Cognitive Biases,176,BEHAV
+178,Emotional Spending,176|10,BEHAV
+179,Lifestyle Inflation,176|9,BEHAV
+180,Anchoring Bias,177,BEHAV
+181,Loss Aversion,177|75,BEHAV
+182,Confirmation Bias,177,BEHAV
+183,Financial Scams,1,BEHAV
+184,Phishing,183,BEHAV
+185,Identity Theft,183,BEHAV
+186,Social Media Misinfo,183|176,BEHAV
+187,Estate Planning,6|7,ESTATE
+188,Will,187,ESTATE
+189,Beneficiary Designation,187|103|161,ESTATE
+190,Power of Attorney,187,ESTATE
+191,Trust,187,ESTATE
+192,Digital Asset Planning,187|147,ESTATE
+193,Generational Wealth,187|75|194,WEALTH
+194,Financial Literacy,1,FOUND
+195,529 Education Plan,193|74,WEALTH
+196,Appreciating Assets,7|75|132,WEALTH
+197,Family Financial Values,193|194,WEALTH
+198,Salary Negotiation,9|199,INCOME
+199,Market Rate Research,9,INCOME
+200,Total Compensation,9|122|198,INCOME
+201,Asking for a Raise,198|199,INCOME
+202,Job Switching Strategy,198|122,INCOME
+203,Robo-Advisors,75|89,TOOLS
+204,Financial Automation,18|26|75,TOOLS
+205,Personal Finance Stack,18|113|114|203,TOOLS

@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roth IRA Growth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e8f5e9 100%);
+            padding: 20px;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: #1b5e20;
+            font-size: 24px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            font-weight: 600;
+            color: #2e7d32;
+            font-size: 14px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #66bb6a, #2e7d32);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1b5e20;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1b5e20;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 6px 10px;
+            border: 2px solid #c8e6c9;
+            border-radius: 6px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #fff3e0;
+            border-radius: 8px;
+            border: 2px solid #ffb74d;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .checkbox-group label {
+            color: #e65100;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            position: relative;
+            height: 350px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid #2e7d32;
+        }
+
+        .stat-card.highlight {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-left-color: #1b5e20;
+        }
+
+        .stat-card.compare {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-left-color: #f57c00;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1b5e20;
+        }
+
+        .stat-card.compare .stat-value {
+            color: #e65100;
+        }
+
+        .stat-subtext {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .tax-free-badge {
+            display: inline-block;
+            background: #1b5e20;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .limit-reminder {
+            background: #e3f2fd;
+            border: 2px solid #2196f3;
+            border-radius: 8px;
+            padding: 12px;
+            text-align: center;
+            color: #1565c0;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-container {
+                height: 300px;
+                padding: 15px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Roth IRA Growth Calculator</h1>
+
+        <div class="controls-grid">
+            <div class="control-group">
+                <label for="currentAge">Current Age</label>
+                <div class="input-row">
+                    <input type="range" id="currentAge" min="18" max="50" value="22" step="1">
+                    <input type="number" id="currentAgeNum" min="18" max="50" value="22">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="contribution">Annual Contribution</label>
+                <div class="input-row">
+                    <input type="range" id="contribution" min="500" max="7000" value="7000" step="100">
+                    <input type="number" id="contributionNum" min="500" max="7000" value="7000" step="100">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="returnRate">Expected Annual Return (%)</label>
+                <div class="input-row">
+                    <input type="range" id="returnRate" min="4" max="12" value="7" step="0.5">
+                    <input type="number" id="returnRateNum" min="4" max="12" value="7" step="0.5">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="retirementAge">Retirement Age</label>
+                <div class="input-row">
+                    <input type="range" id="retirementAge" min="55" max="70" value="65" step="1">
+                    <input type="number" id="retirementAgeNum" min="55" max="70" value="65">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="compareMode">
+                    <label for="compareMode">Compare: Start 10 Years Later</label>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <div class="limit-reminder">
+                    2025 Contribution Limit: $7,000/year ($583/month)
+                </div>
+            </div>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="growthChart"></canvas>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+        </div>
+    </div>
+
+    <script>
+        // Chart instance
+        let chart = null;
+
+        // Sync slider and number inputs
+        function syncInputs(sliderId, numberId) {
+            const slider = document.getElementById(sliderId);
+            const number = document.getElementById(numberId);
+
+            slider.addEventListener('input', () => {
+                number.value = slider.value;
+                calculate();
+            });
+
+            number.addEventListener('input', () => {
+                slider.value = number.value;
+                calculate();
+            });
+        }
+
+        syncInputs('currentAge', 'currentAgeNum');
+        syncInputs('contribution', 'contributionNum');
+        syncInputs('returnRate', 'returnRateNum');
+        syncInputs('retirementAge', 'retirementAgeNum');
+
+        document.getElementById('compareMode').addEventListener('change', calculate);
+
+        function formatCurrency(value) {
+            return '$' + Math.round(value).toLocaleString('en-US');
+        }
+
+        function calculateGrowth(startAge, retirementAge, annualContribution, returnRate) {
+            const years = retirementAge - startAge;
+            const data = [];
+            let balance = 0;
+            let totalContributions = 0;
+
+            for (let year = 0; year <= years; year++) {
+                const age = startAge + year;
+
+                if (year > 0) {
+                    balance += annualContribution;
+                    totalContributions += annualContribution;
+                    balance *= (1 + returnRate / 100);
+                }
+
+                data.push({
+                    age: age,
+                    balance: balance,
+                    contributions: totalContributions
+                });
+            }
+
+            return {
+                data: data,
+                totalContributions: totalContributions,
+                finalBalance: balance,
+                growth: balance - totalContributions
+            };
+        }
+
+        function findMilestones(data) {
+            const milestones = [];
+            const targets = [100000, 500000, 1000000];
+            const found = new Set();
+
+            for (let i = 1; i < data.length; i++) {
+                for (let target of targets) {
+                    if (!found.has(target) && data[i-1].balance < target && data[i].balance >= target) {
+                        milestones.push({
+                            age: data[i].age,
+                            amount: target,
+                            label: target >= 1000000 ? '$1M' : target >= 500000 ? '$500K' : '$100K'
+                        });
+                        found.add(target);
+                    }
+                }
+            }
+
+            return milestones;
+        }
+
+        function calculate() {
+            const currentAge = parseInt(document.getElementById('currentAge').value);
+            const contribution = parseFloat(document.getElementById('contribution').value);
+            const returnRate = parseFloat(document.getElementById('returnRate').value);
+            const retirementAge = parseInt(document.getElementById('retirementAge').value);
+            const compareMode = document.getElementById('compareMode').checked;
+
+            // Primary scenario
+            const primary = calculateGrowth(currentAge, retirementAge, contribution, returnRate);
+
+            // Comparison scenario (10 years later)
+            let comparison = null;
+            if (compareMode) {
+                const delayedStart = currentAge + 10;
+                if (delayedStart < retirementAge) {
+                    comparison = calculateGrowth(delayedStart, retirementAge, contribution, returnRate);
+                }
+            }
+
+            updateChart(primary, comparison, currentAge, retirementAge);
+            updateStats(primary, comparison);
+        }
+
+        function updateChart(primary, comparison, startAge, endAge) {
+            const ctx = document.getElementById('growthChart').getContext('2d');
+
+            const labels = primary.data.map(d => d.age);
+
+            const datasets = [
+                {
+                    label: 'Your Roth IRA Balance',
+                    data: primary.data.map(d => d.balance),
+                    borderColor: '#2e7d32',
+                    backgroundColor: 'rgba(46, 125, 50, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6
+                }
+            ];
+
+            if (comparison) {
+                // Pad comparison data to align with primary timeline
+                const comparisonData = Array(primary.data.length).fill(null);
+                const delayedStart = startAge + 10;
+                const offset = delayedStart - startAge;
+
+                comparison.data.forEach((point, index) => {
+                    if (offset + index < comparisonData.length) {
+                        comparisonData[offset + index] = point.balance;
+                    }
+                });
+
+                datasets.push({
+                    label: 'Starting 10 Years Later',
+                    data: comparisonData,
+                    borderColor: '#f57c00',
+                    backgroundColor: 'rgba(245, 124, 0, 0.1)',
+                    borderWidth: 3,
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 0,
+                    pointHoverRadius: 6,
+                    borderDash: [5, 5]
+                });
+            }
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: '#2c3e50',
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                padding: 15
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.parsed.y === null) return '';
+                                    return context.dataset.label + ': ' + formatCurrency(context.parsed.y);
+                                },
+                                title: function(context) {
+                                    return 'Age ' + context[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Age',
+                                color: '#2c3e50',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                color: '#666'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Account Balance',
+                                color: '#2c3e50',
+                                font: {
+                                    size: 14,
+                                    weight: '600'
+                                }
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: '#666',
+                                callback: function(value) {
+                                    if (value >= 1000000) {
+                                        return '$' + (value / 1000000).toFixed(1) + 'M';
+                                    } else if (value >= 1000) {
+                                        return '$' + (value / 1000).toFixed(0) + 'K';
+                                    }
+                                    return '$' + value;
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateStats(primary, comparison) {
+            const statsGrid = document.getElementById('statsGrid');
+            const growthMultiple = (primary.finalBalance / primary.totalContributions).toFixed(2);
+
+            const milestones = findMilestones(primary.data);
+            let milestoneBadges = '';
+            if (milestones.length > 0) {
+                milestoneBadges = '<div style="margin-top: 10px;">';
+                milestones.forEach(m => {
+                    milestoneBadges += `<span style="display: inline-block; background: #ffd54f; color: #f57f17; padding: 3px 8px; border-radius: 8px; font-size: 11px; font-weight: 600; margin-right: 5px;">Hit ${m.label} at age ${m.age}</span>`;
+                });
+                milestoneBadges += '</div>';
+            }
+
+            let statsHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Total Contributions</div>
+                    <div class="stat-value">${formatCurrency(primary.totalContributions)}</div>
+                    <div class="stat-subtext">${Math.round((primary.finalBalance - primary.totalContributions) / primary.totalContributions * 100)}% growth rate</div>
+                </div>
+
+                <div class="stat-card highlight">
+                    <div class="stat-label">Tax-Free Growth</div>
+                    <div class="stat-value">${formatCurrency(primary.growth)}</div>
+                    <span class="tax-free-badge">TAX-FREE</span>
+                </div>
+
+                <div class="stat-card highlight">
+                    <div class="stat-label">Final Balance at Retirement</div>
+                    <div class="stat-value">${formatCurrency(primary.finalBalance)}</div>
+                    <div class="stat-subtext">${growthMultiple}x your contributions</div>
+                    ${milestoneBadges}
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Your Contributions vs Growth</div>
+                    <div class="stat-value" style="font-size: 16px;">
+                        Contributions: ${formatCurrency(primary.totalContributions)}<br>
+                        Growth: ${formatCurrency(primary.growth)}
+                    </div>
+                    <div class="stat-subtext">All withdrawals in retirement are TAX-FREE</div>
+                </div>
+            `;
+
+            if (comparison) {
+                const costOfWaiting = primary.finalBalance - comparison.finalBalance;
+                const percentLoss = ((costOfWaiting / primary.finalBalance) * 100).toFixed(1);
+
+                statsHTML += `
+                    <div class="stat-card compare" style="grid-column: 1 / -1;">
+                        <div class="stat-label">Cost of Waiting 10 Years</div>
+                        <div class="stat-value">${formatCurrency(costOfWaiting)}</div>
+                        <div class="stat-subtext">
+                            You'd lose ${percentLoss}% of your retirement savings by waiting.
+                            Final balance if you wait: ${formatCurrency(comparison.finalBalance)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            statsGrid.innerHTML = statsHTML;
+        }
+
+        // Initial calculation
+        calculate();
+    </script>
+</body>
+</html>

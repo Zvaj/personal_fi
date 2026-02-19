@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Credit Score Impact Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+            color: #2c3e50;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .gauge-section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        #gaugeCanvas {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        .score-display {
+            text-align: center;
+            margin-top: -60px;
+            margin-bottom: 20px;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .score-label {
+            font-size: 18px;
+            font-weight: 600;
+            margin-top: 5px;
+        }
+
+        .controls-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        .control-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+
+        .weight-badge {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e6ed;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:hover {
+            border-color: #3498db;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #2980b9;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #27ae60 0%, #f39c12 30%, #e74c3c 50%);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2c3e50;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #2c3e50;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .slider-value {
+            min-width: 80px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 18px;
+            color: #2c3e50;
+        }
+
+        .slider-hint {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .breakdown-section {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .breakdown-section h2 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        .tips-section {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tips-section h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tips-section ul {
+            list-style-position: inside;
+            color: #555;
+        }
+
+        .tips-section li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .score-number {
+                font-size: 36px;
+            }
+
+            .gauge-section, .controls-section, .breakdown-section {
+                padding: 15px;
+            }
+
+            .chart-container {
+                height: 250px;
+            }
+        }
+
+        .poor { color: #e74c3c; }
+        .fair { color: #e67e22; }
+        .good { color: #f39c12; }
+        .very-good { color: #9b59b6; }
+        .excellent { color: #27ae60; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Credit Score Impact Calculator</h1>
+        <p class="subtitle">Understand how your financial behaviors affect your credit score</p>
+
+        <div class="gauge-section">
+            <canvas id="gaugeCanvas" width="400" height="250"></canvas>
+            <div class="score-display">
+                <div class="score-number" id="scoreNumber">700</div>
+                <div class="score-label" id="scoreLabel">Good</div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="control-group">
+                <label>
+                    Payment History
+                    <span class="weight-badge">35%</span>
+                </label>
+                <select id="paymentHistory">
+                    <option value="100">Always on time</option>
+                    <option value="70">1 late payment (30 days)</option>
+                    <option value="50">1 late payment (60+ days)</option>
+                    <option value="30">Multiple late payments</option>
+                    <option value="10">Collections/default</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Credit Utilization
+                    <span class="weight-badge">30%</span>
+                </label>
+                <div class="slider-container">
+                    <input type="range" id="utilization" min="0" max="100" value="25" step="1">
+                    <span class="slider-value" id="utilizationValue">25%</span>
+                </div>
+                <div class="slider-hint" id="utilizationHint">Good (10-30%)</div>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Length of Credit History
+                    <span class="weight-badge">15%</span>
+                </label>
+                <select id="historyLength">
+                    <option value="20">Less than 1 year</option>
+                    <option value="45">1-3 years</option>
+                    <option value="75" selected>3-7 years</option>
+                    <option value="100">7+ years</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Recent Credit Inquiries
+                    <span class="weight-badge">10%</span>
+                </label>
+                <select id="inquiries">
+                    <option value="100" selected>0 inquiries</option>
+                    <option value="80">1-2 inquiries</option>
+                    <option value="50">3-5 inquiries</option>
+                    <option value="25">6+ inquiries</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Credit Mix
+                    <span class="weight-badge">10%</span>
+                </label>
+                <select id="creditMix">
+                    <option value="50" selected>Credit card only</option>
+                    <option value="75">Card + installment loan</option>
+                    <option value="100">Card + loan + mortgage</option>
+                    <option value="10">No credit accounts</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="breakdown-section">
+            <h2>Factor Breakdown</h2>
+            <div class="chart-container">
+                <canvas id="breakdownChart"></canvas>
+            </div>
+        </div>
+
+        <div class="tips-section">
+            <h2>💡 Personalized Tips</h2>
+            <ul id="tipsList">
+                <li>Keep making on-time payments to maintain your excellent payment history.</li>
+                <li>Your credit utilization is in the optimal range. Keep balances low!</li>
+                <li>Consider keeping your oldest credit accounts open to maintain credit history length.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let state = {
+            paymentHistory: 100,
+            utilization: 25,
+            historyLength: 75,
+            inquiries: 100,
+            creditMix: 50
+        };
+
+        // Weights
+        const weights = {
+            paymentHistory: 0.35,
+            utilization: 0.30,
+            historyLength: 0.15,
+            inquiries: 0.10,
+            creditMix: 0.10
+        };
+
+        // Canvas for gauge
+        const gaugeCanvas = document.getElementById('gaugeCanvas');
+        const gaugeCtx = gaugeCanvas.getContext('2d');
+
+        // Chart.js for breakdown
+        let breakdownChart;
+
+        // Initialize
+        function init() {
+            // Event listeners
+            document.getElementById('paymentHistory').addEventListener('change', (e) => {
+                state.paymentHistory = parseInt(e.target.value);
+                update();
+            });
+
+            document.getElementById('utilization').addEventListener('input', (e) => {
+                state.utilization = parseInt(e.target.value);
+                document.getElementById('utilizationValue').textContent = state.utilization + '%';
+                updateUtilizationHint();
+                update();
+            });
+
+            document.getElementById('historyLength').addEventListener('change', (e) => {
+                state.historyLength = parseInt(e.target.value);
+                update();
+            });
+
+            document.getElementById('inquiries').addEventListener('change', (e) => {
+                state.inquiries = parseInt(e.target.value);
+                update();
+            });
+
+            document.getElementById('creditMix').addEventListener('change', (e) => {
+                state.creditMix = parseInt(e.target.value);
+                update();
+            });
+
+            // Initialize breakdown chart
+            const ctx = document.getElementById('breakdownChart').getContext('2d');
+            breakdownChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Payment History (35%)', 'Credit Utilization (30%)', 'Credit History (15%)', 'New Credit (10%)', 'Credit Mix (10%)'],
+                    datasets: [{
+                        label: 'Factor Score',
+                        data: [100, 80, 75, 100, 50],
+                        backgroundColor: [
+                            '#27ae60',
+                            '#27ae60',
+                            '#f39c12',
+                            '#27ae60',
+                            '#f39c12'
+                        ],
+                        borderRadius: 6,
+                        barThickness: 40
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Score: ' + context.parsed.x + '/100';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            max: 100,
+                            grid: {
+                                display: true
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value;
+                                }
+                            }
+                        },
+                        y: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            update();
+        }
+
+        function updateUtilizationHint() {
+            const util = state.utilization;
+            const hint = document.getElementById('utilizationHint');
+
+            if (util < 10) {
+                hint.textContent = 'Excellent (<10%)';
+                hint.style.color = '#27ae60';
+            } else if (util < 30) {
+                hint.textContent = 'Good (10-30%)';
+                hint.style.color = '#27ae60';
+            } else if (util < 50) {
+                hint.textContent = 'Fair (30-50%)';
+                hint.style.color = '#f39c12';
+            } else {
+                hint.textContent = 'Poor (50%+)';
+                hint.style.color = '#e74c3c';
+            }
+        }
+
+        function getUtilizationScore(util) {
+            if (util < 10) return 100;
+            if (util < 30) return 80;
+            if (util < 50) return 50;
+            if (util < 75) return 30;
+            return 10;
+        }
+
+        function calculateScore() {
+            const scores = {
+                paymentHistory: state.paymentHistory,
+                utilization: getUtilizationScore(state.utilization),
+                historyLength: state.historyLength,
+                inquiries: state.inquiries,
+                creditMix: state.creditMix
+            };
+
+            const weightedScore =
+                scores.paymentHistory * weights.paymentHistory +
+                scores.utilization * weights.utilization +
+                scores.historyLength * weights.historyLength +
+                scores.inquiries * weights.inquiries +
+                scores.creditMix * weights.creditMix;
+
+            const ficoScore = Math.round(300 + (weightedScore / 100) * 550);
+
+            return { ficoScore, scores };
+        }
+
+        function drawGauge(score) {
+            const width = gaugeCanvas.width;
+            const height = gaugeCanvas.height;
+            const centerX = width / 2;
+            const centerY = height - 20;
+            const radius = Math.min(width, height * 1.5) / 2 - 30;
+
+            // Clear canvas
+            gaugeCtx.clearRect(0, 0, width, height);
+
+            // Draw color zones
+            const zones = [
+                { start: -Math.PI, end: -Math.PI * 0.6, color: '#e74c3c', label: 'Poor' },
+                { start: -Math.PI * 0.6, end: -Math.PI * 0.2, color: '#e67e22', label: 'Fair' },
+                { start: -Math.PI * 0.2, end: Math.PI * 0.2, color: '#f39c12', label: 'Good' },
+                { start: Math.PI * 0.2, end: Math.PI * 0.6, color: '#9b59b6', label: 'Very Good' },
+                { start: Math.PI * 0.6, end: Math.PI, color: '#27ae60', label: 'Excellent' }
+            ];
+
+            zones.forEach(zone => {
+                gaugeCtx.beginPath();
+                gaugeCtx.arc(centerX, centerY, radius, zone.start, zone.end);
+                gaugeCtx.lineWidth = 30;
+                gaugeCtx.strokeStyle = zone.color;
+                gaugeCtx.stroke();
+            });
+
+            // Draw tick marks and labels
+            gaugeCtx.fillStyle = '#2c3e50';
+            gaugeCtx.font = '12px system-ui';
+            const scores = [300, 580, 670, 740, 800, 850];
+            scores.forEach((s, i) => {
+                const angle = -Math.PI + (i / (scores.length - 1)) * Math.PI * 2;
+                const x1 = centerX + Math.cos(angle) * (radius - 20);
+                const y1 = centerY + Math.sin(angle) * (radius - 20);
+                const x2 = centerX + Math.cos(angle) * (radius - 35);
+                const y2 = centerY + Math.sin(angle) * (radius - 35);
+
+                gaugeCtx.beginPath();
+                gaugeCtx.moveTo(x1, y1);
+                gaugeCtx.lineTo(x2, y2);
+                gaugeCtx.lineWidth = 2;
+                gaugeCtx.strokeStyle = '#2c3e50';
+                gaugeCtx.stroke();
+
+                const textX = centerX + Math.cos(angle) * (radius - 50);
+                const textY = centerY + Math.sin(angle) * (radius - 50);
+                gaugeCtx.textAlign = 'center';
+                gaugeCtx.fillText(s, textX, textY);
+            });
+
+            // Draw needle
+            const normalizedScore = (score - 300) / 550;
+            const needleAngle = -Math.PI + normalizedScore * Math.PI * 2;
+
+            gaugeCtx.save();
+            gaugeCtx.translate(centerX, centerY);
+            gaugeCtx.rotate(needleAngle);
+
+            gaugeCtx.beginPath();
+            gaugeCtx.moveTo(0, 0);
+            gaugeCtx.lineTo(radius - 45, 0);
+            gaugeCtx.lineWidth = 4;
+            gaugeCtx.strokeStyle = '#2c3e50';
+            gaugeCtx.stroke();
+
+            gaugeCtx.beginPath();
+            gaugeCtx.arc(0, 0, 8, 0, Math.PI * 2);
+            gaugeCtx.fillStyle = '#2c3e50';
+            gaugeCtx.fill();
+
+            gaugeCtx.restore();
+        }
+
+        function getScoreLabel(score) {
+            if (score < 580) return { label: 'Poor', class: 'poor' };
+            if (score < 670) return { label: 'Fair', class: 'fair' };
+            if (score < 740) return { label: 'Good', class: 'good' };
+            if (score < 800) return { label: 'Very Good', class: 'very-good' };
+            return { label: 'Excellent', class: 'excellent' };
+        }
+
+        function getBarColor(score) {
+            if (score >= 80) return '#27ae60';
+            if (score >= 50) return '#f39c12';
+            return '#e74c3c';
+        }
+
+        function generateTips(scores) {
+            const tips = [];
+            const factorNames = {
+                paymentHistory: 'Payment History',
+                utilization: 'Credit Utilization',
+                historyLength: 'Credit History Length',
+                inquiries: 'Credit Inquiries',
+                creditMix: 'Credit Mix'
+            };
+
+            // Find weakest factors
+            const sortedFactors = Object.entries(scores).sort((a, b) => a[1] - b[1]);
+
+            // Payment history tips
+            if (scores.paymentHistory < 80) {
+                tips.push('Payment history is the most important factor (35%). Set up automatic payments to never miss a due date.');
+            }
+
+            // Utilization tips
+            if (scores.utilization < 80) {
+                if (state.utilization > 30) {
+                    tips.push('Keep your credit utilization below 30%. If you have a $1,000 limit, keep your balance under $300. Pay down balances or request a credit limit increase.');
+                } else if (state.utilization > 50) {
+                    tips.push('Your credit utilization is high (over 50%). This significantly hurts your score. Focus on paying down balances as your top priority.');
+                }
+            } else if (scores.utilization === 100) {
+                tips.push('Excellent! Your credit utilization is in the optimal range (under 10%). Keep it up!');
+            }
+
+            // History length tips
+            if (scores.historyLength < 75) {
+                tips.push('Credit history length matters. Keep your oldest credit accounts open even if you don\'t use them regularly. Avoid closing old accounts.');
+            }
+
+            // Inquiries tips
+            if (scores.inquiries < 80) {
+                tips.push('Multiple credit inquiries can lower your score. Space out credit applications and only apply when necessary. Shop for loans within a 14-45 day window to minimize impact.');
+            }
+
+            // Credit mix tips
+            if (scores.creditMix < 75) {
+                tips.push('A diverse credit mix (credit cards, installment loans, mortgage) can improve your score. Consider adding different types of credit over time, but only take on debt you can manage.');
+            }
+
+            // General tips based on overall score
+            const { ficoScore } = calculateScore();
+            if (ficoScore >= 740 && tips.length < 3) {
+                tips.push('Great job! Your score is in the "Very Good" or "Excellent" range. Maintain your good habits to keep it there.');
+            }
+
+            // Add positive reinforcement for strong areas
+            if (scores.paymentHistory === 100 && tips.length < 4) {
+                tips.push('Your perfect payment history is excellent! This is the single most important factor in your credit score.');
+            }
+
+            return tips.slice(0, 4);
+        }
+
+        function update() {
+            const { ficoScore, scores } = calculateScore();
+            const { label, class: labelClass } = getScoreLabel(ficoScore);
+
+            // Update score display
+            document.getElementById('scoreNumber').textContent = ficoScore;
+            document.getElementById('scoreLabel').textContent = label;
+            document.getElementById('scoreLabel').className = 'score-label ' + labelClass;
+
+            // Draw gauge
+            drawGauge(ficoScore);
+
+            // Update breakdown chart
+            breakdownChart.data.datasets[0].data = [
+                scores.paymentHistory,
+                scores.utilization,
+                scores.historyLength,
+                scores.inquiries,
+                scores.creditMix
+            ];
+
+            breakdownChart.data.datasets[0].backgroundColor = [
+                getBarColor(scores.paymentHistory),
+                getBarColor(scores.utilization),
+                getBarColor(scores.historyLength),
+                getBarColor(scores.inquiries),
+                getBarColor(scores.creditMix)
+            ];
+
+            breakdownChart.update();
+
+            // Update tips
+            const tips = generateTips(scores);
+            const tipsList = document.getElementById('tipsList');
+            tipsList.innerHTML = tips.map(tip => `<li>${tip}</li>`).join('');
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+</html>

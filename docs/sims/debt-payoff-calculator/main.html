@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debt Payoff Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+        }
+
+        h1 {
+            font-size: 24px;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+            margin-bottom: 24px;
+        }
+
+        .section {
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 12px;
+        }
+
+        .debts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 12px;
+        }
+
+        .debts-table th {
+            background: #edf2f7;
+            padding: 10px 8px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .debts-table td {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .debts-table input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .debts-table input:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+
+        .remove-btn {
+            background: #fc8181;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #f56565;
+        }
+
+        .add-btn, .reset-btn, .calculate-btn {
+            background: #4299e1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            margin-right: 8px;
+            transition: background 0.2s;
+        }
+
+        .add-btn:hover, .reset-btn:hover, .calculate-btn:hover {
+            background: #3182ce;
+        }
+
+        .reset-btn {
+            background: #48bb78;
+        }
+
+        .reset-btn:hover {
+            background: #38a169;
+        }
+
+        .controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+
+        .control-group {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+        }
+
+        .control-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: #cbd5e0;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #4299e1;
+            cursor: pointer;
+            border: none;
+        }
+
+        .slider-value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .strategy-toggle {
+            display: flex;
+            gap: 12px;
+        }
+
+        .strategy-option {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #cbd5e0;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+        }
+
+        .strategy-option input[type="radio"] {
+            display: none;
+        }
+
+        .strategy-option.active {
+            border-color: #4299e1;
+            background: #ebf8ff;
+        }
+
+        .strategy-name {
+            font-weight: 600;
+            color: #2d3748;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .strategy-desc {
+            font-size: 12px;
+            color: #718096;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 24px;
+        }
+
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 16px;
+        }
+
+        .result-card {
+            background: #f7fafc;
+            padding: 16px;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+        }
+
+        .result-card h3 {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .result-metric {
+            margin-bottom: 12px;
+        }
+
+        .result-label {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 2px;
+        }
+
+        .result-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .result-card.winner {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .result-card.winner h3 {
+            color: #2f855a;
+        }
+
+        .payoff-order {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .payoff-item {
+            font-size: 12px;
+            color: #4a5568;
+            padding: 4px 0;
+        }
+
+        .highlight-green {
+            color: #2f855a;
+            font-weight: 600;
+        }
+
+        .highlight-red {
+            color: #c53030;
+        }
+
+        @media (max-width: 768px) {
+            .controls {
+                grid-template-columns: 1fr;
+            }
+
+            .results {
+                grid-template-columns: 1fr;
+            }
+
+            .debts-table {
+                font-size: 12px;
+            }
+
+            .debts-table input {
+                font-size: 12px;
+                padding: 4px 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Debt Payoff Calculator</h1>
+        <p class="subtitle">Compare debt snowball vs. avalanche strategies to optimize your payoff plan</p>
+
+        <div class="section">
+            <div class="section-title">Your Debts</div>
+            <table class="debts-table" id="debtsTable">
+                <thead>
+                    <tr>
+                        <th>Debt Name</th>
+                        <th>Balance ($)</th>
+                        <th>APR (%)</th>
+                        <th>Min Payment ($)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="debtsBody">
+                </tbody>
+            </table>
+            <button class="add-btn" onclick="addDebt()">Add Debt</button>
+            <button class="reset-btn" onclick="resetToExample()">Reset to Example</button>
+        </div>
+
+        <div class="section">
+            <div class="controls">
+                <div class="control-group">
+                    <label class="control-label">Extra Monthly Payment</label>
+                    <div class="slider-container">
+                        <input type="range" id="extraPayment" min="0" max="500" value="200" step="10" oninput="updateSliderValue()">
+                        <span class="slider-value" id="extraPaymentValue">$200</span>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label">View Strategy</label>
+                    <div class="strategy-toggle">
+                        <label class="strategy-option active" id="bothOption">
+                            <input type="radio" name="strategy" value="both" checked onchange="updateStrategyView()">
+                            <span class="strategy-name">Both</span>
+                            <span class="strategy-desc">Compare both methods</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Payoff Timeline</div>
+            <div class="chart-container">
+                <canvas id="payoffChart"></canvas>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-title">Results Comparison</div>
+            <div class="results" id="resultsContainer">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let debts = [];
+        let chart = null;
+
+        // Debt class
+        class Debt {
+            constructor(name, balance, apr, minPayment) {
+                this.name = name;
+                this.balance = balance;
+                this.apr = apr;
+                this.minPayment = minPayment;
+            }
+
+            clone() {
+                return new Debt(this.name, this.balance, this.apr, this.minPayment);
+            }
+        }
+
+        // Initialize with Jordan's example
+        function resetToExample() {
+            debts = [
+                new Debt('Credit Card', 4800, 22, 120),
+                new Debt('Car Loan', 8200, 6.5, 285),
+                new Debt('Student Loan', 12500, 5.0, 150)
+            ];
+            renderDebts();
+            calculate();
+        }
+
+        function addDebt() {
+            if (debts.length >= 5) {
+                alert('Maximum 5 debts allowed');
+                return;
+            }
+            debts.push(new Debt('New Debt', 0, 0, 0));
+            renderDebts();
+        }
+
+        function removeDebt(index) {
+            debts.splice(index, 1);
+            renderDebts();
+            calculate();
+        }
+
+        function renderDebts() {
+            const tbody = document.getElementById('debtsBody');
+            tbody.innerHTML = '';
+
+            debts.forEach((debt, index) => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td><input type="text" value="${debt.name}" onchange="updateDebt(${index}, 'name', this.value)"></td>
+                    <td><input type="number" value="${debt.balance}" min="0" step="100" onchange="updateDebt(${index}, 'balance', parseFloat(this.value))"></td>
+                    <td><input type="number" value="${debt.apr}" min="0" max="100" step="0.1" onchange="updateDebt(${index}, 'apr', parseFloat(this.value))"></td>
+                    <td><input type="number" value="${debt.minPayment}" min="0" step="10" onchange="updateDebt(${index}, 'minPayment', parseFloat(this.value))"></td>
+                    <td><button class="remove-btn" onclick="removeDebt(${index})">Remove</button></td>
+                `;
+            });
+        }
+
+        function updateDebt(index, field, value) {
+            debts[index][field] = value;
+            calculate();
+        }
+
+        function updateSliderValue() {
+            const slider = document.getElementById('extraPayment');
+            const value = slider.value;
+            document.getElementById('extraPaymentValue').textContent = '$' + value;
+            calculate();
+        }
+
+        function updateStrategyView() {
+            calculate();
+        }
+
+        // Snowball: smallest balance first
+        function calculateSnowball(debtList, extraPayment) {
+            let debtsClone = debtList.map(d => d.clone());
+            let timeline = [{ month: 0, total: debtsClone.reduce((sum, d) => sum + d.balance, 0) }];
+            let totalInterest = 0;
+            let month = 0;
+            let payoffOrder = [];
+            let availableExtra = extraPayment;
+
+            while (debtsClone.some(d => d.balance > 0) && month < 600) {
+                month++;
+
+                // Apply interest and minimum payments
+                debtsClone.forEach(debt => {
+                    if (debt.balance > 0) {
+                        const monthlyRate = debt.apr / 100 / 12;
+                        const interest = debt.balance * monthlyRate;
+                        totalInterest += interest;
+                        debt.balance += interest;
+
+                        const payment = Math.min(debt.minPayment, debt.balance);
+                        debt.balance -= payment;
+                    }
+                });
+
+                // Sort by balance (smallest first) for snowball
+                debtsClone.sort((a, b) => a.balance - b.balance);
+
+                // Apply extra payment to smallest debt
+                let remainingExtra = availableExtra;
+                for (let debt of debtsClone) {
+                    if (debt.balance > 0 && remainingExtra > 0) {
+                        const extraApplied = Math.min(remainingExtra, debt.balance);
+                        debt.balance -= extraApplied;
+                        remainingExtra -= extraApplied;
+
+                        if (debt.balance <= 0.01) {
+                            debt.balance = 0;
+                            payoffOrder.push({ name: debt.name, month: month });
+                            availableExtra += debt.minPayment;
+                        }
+                        break;
+                    }
+                }
+
+                const totalRemaining = debtsClone.reduce((sum, d) => sum + d.balance, 0);
+                timeline.push({ month: month, total: totalRemaining });
+
+                if (totalRemaining <= 0.01) break;
+            }
+
+            return {
+                months: month,
+                interest: totalInterest,
+                timeline: timeline,
+                payoffOrder: payoffOrder
+            };
+        }
+
+        // Avalanche: highest APR first
+        function calculateAvalanche(debtList, extraPayment) {
+            let debtsClone = debtList.map(d => d.clone());
+            let timeline = [{ month: 0, total: debtsClone.reduce((sum, d) => sum + d.balance, 0) }];
+            let totalInterest = 0;
+            let month = 0;
+            let payoffOrder = [];
+            let availableExtra = extraPayment;
+
+            while (debtsClone.some(d => d.balance > 0) && month < 600) {
+                month++;
+
+                // Apply interest and minimum payments
+                debtsClone.forEach(debt => {
+                    if (debt.balance > 0) {
+                        const monthlyRate = debt.apr / 100 / 12;
+                        const interest = debt.balance * monthlyRate;
+                        totalInterest += interest;
+                        debt.balance += interest;
+
+                        const payment = Math.min(debt.minPayment, debt.balance);
+                        debt.balance -= payment;
+                    }
+                });
+
+                // Sort by APR (highest first) for avalanche
+                debtsClone.sort((a, b) => b.apr - a.apr);
+
+                // Apply extra payment to highest APR debt
+                let remainingExtra = availableExtra;
+                for (let debt of debtsClone) {
+                    if (debt.balance > 0 && remainingExtra > 0) {
+                        const extraApplied = Math.min(remainingExtra, debt.balance);
+                        debt.balance -= extraApplied;
+                        remainingExtra -= extraApplied;
+
+                        if (debt.balance <= 0.01) {
+                            debt.balance = 0;
+                            payoffOrder.push({ name: debt.name, month: month });
+                            availableExtra += debt.minPayment;
+                        }
+                        break;
+                    }
+                }
+
+                const totalRemaining = debtsClone.reduce((sum, d) => sum + d.balance, 0);
+                timeline.push({ month: month, total: totalRemaining });
+
+                if (totalRemaining <= 0.01) break;
+            }
+
+            return {
+                months: month,
+                interest: totalInterest,
+                timeline: timeline,
+                payoffOrder: payoffOrder
+            };
+        }
+
+        function calculate() {
+            if (debts.length === 0) {
+                if (chart) {
+                    chart.data.datasets = [];
+                    chart.update();
+                }
+                document.getElementById('resultsContainer').innerHTML = '<p style="color: #718096; text-align: center; padding: 20px;">Add debts to see results</p>';
+                return;
+            }
+
+            const extraPayment = parseFloat(document.getElementById('extraPayment').value);
+
+            const snowballResult = calculateSnowball(debts, extraPayment);
+            const avalancheResult = calculateAvalanche(debts, extraPayment);
+
+            renderChart(snowballResult, avalancheResult);
+            renderResults(snowballResult, avalancheResult);
+        }
+
+        function renderChart(snowballResult, avalancheResult) {
+            const ctx = document.getElementById('payoffChart').getContext('2d');
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            const maxMonths = Math.max(snowballResult.months, avalancheResult.months);
+            const labels = Array.from({ length: maxMonths + 1 }, (_, i) => i);
+
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Snowball (Smallest Balance First)',
+                            data: snowballResult.timeline.map(t => t.total),
+                            borderColor: '#4299e1',
+                            backgroundColor: 'rgba(66, 153, 225, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            fill: true
+                        },
+                        {
+                            label: 'Avalanche (Highest APR First)',
+                            data: avalancheResult.timeline.map(t => t.total),
+                            borderColor: '#ed8936',
+                            backgroundColor: 'rgba(237, 137, 54, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.1,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': $' + context.parsed.y.toFixed(2);
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Months'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Total Remaining Balance ($)'
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderResults(snowballResult, avalancheResult) {
+            const container = document.getElementById('resultsContainer');
+
+            const interestSaved = snowballResult.interest - avalancheResult.interest;
+            const timeDiff = snowballResult.months - avalancheResult.months;
+
+            const snowballWinner = snowballResult.months < avalancheResult.months ? 'winner' : '';
+            const avalancheWinner = avalancheResult.interest < snowballResult.interest ? 'winner' : '';
+
+            container.innerHTML = `
+                <div class="result-card ${snowballWinner}">
+                    <h3>Snowball Method</h3>
+                    <div class="result-metric">
+                        <div class="result-label">Time to Payoff</div>
+                        <div class="result-value">${snowballResult.months} months</div>
+                    </div>
+                    <div class="result-metric">
+                        <div class="result-label">Total Interest Paid</div>
+                        <div class="result-value">$${snowballResult.interest.toFixed(2).toLocaleString()}</div>
+                    </div>
+                    <div class="payoff-order">
+                        <div class="result-label" style="margin-bottom: 6px;">Payoff Order:</div>
+                        ${snowballResult.payoffOrder.map((item, idx) =>
+                            `<div class="payoff-item">${idx + 1}. ${item.name} (Month ${item.month})</div>`
+                        ).join('')}
+                    </div>
+                    ${snowballWinner ? '<div style="margin-top: 12px; color: #2f855a; font-size: 12px; font-weight: 600;">Faster psychological wins!</div>' : ''}
+                </div>
+
+                <div class="result-card ${avalancheWinner}">
+                    <h3>Avalanche Method</h3>
+                    <div class="result-metric">
+                        <div class="result-label">Time to Payoff</div>
+                        <div class="result-value">${avalancheResult.months} months</div>
+                    </div>
+                    <div class="result-metric">
+                        <div class="result-label">Total Interest Paid</div>
+                        <div class="result-value">$${avalancheResult.interest.toFixed(2).toLocaleString()}</div>
+                    </div>
+                    <div class="payoff-order">
+                        <div class="result-label" style="margin-bottom: 6px;">Payoff Order:</div>
+                        ${avalancheResult.payoffOrder.map((item, idx) =>
+                            `<div class="payoff-item">${idx + 1}. ${item.name} (Month ${item.month})</div>`
+                        ).join('')}
+                    </div>
+                    ${avalancheWinner ? '<div style="margin-top: 12px; color: #2f855a; font-size: 12px; font-weight: 600;">Saves the most money!</div>' : ''}
+                </div>
+
+                <div class="result-card">
+                    <h3>Comparison</h3>
+                    <div class="result-metric">
+                        <div class="result-label">Interest Saved (Avalanche)</div>
+                        <div class="result-value ${interestSaved > 0 ? 'highlight-green' : ''}">
+                            ${interestSaved > 0 ? '$' + interestSaved.toFixed(2).toLocaleString() : '$0.00'}
+                        </div>
+                    </div>
+                    <div class="result-metric">
+                        <div class="result-label">Time Difference</div>
+                        <div class="result-value">
+                            ${Math.abs(timeDiff)} ${timeDiff === 0 ? 'months (same)' : timeDiff > 0 ? 'months faster (avalanche)' : 'months faster (snowball)'}
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #4a5568; line-height: 1.8;">
+                        <strong>Key Insight:</strong><br>
+                        ${interestSaved > 0
+                            ? `Avalanche saves you $${interestSaved.toFixed(2)} in interest, while Snowball may provide faster psychological wins by eliminating smaller debts first.`
+                            : 'Both methods have similar costs. Choose based on your preference for quick wins (snowball) or mathematical optimization (avalanche).'
+                        }
+                    </div>
+                </div>
+            `;
+        }
+
+        // Initialize
+        resetToExample();
+    </script>
+</body>
+</html>
