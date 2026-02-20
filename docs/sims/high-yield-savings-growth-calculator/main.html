@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Yield Savings Growth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        @media(max-width:500px){ .comparison { grid-template-columns: 1fr; } }
+        .comp-card { border-radius: 10px; padding: 16px; text-align: center; }
+        .trad { background: #f8f9fa; border: 2px solid #adb5bd; }
+        .hysa { background: #d4edda; border: 2px solid #28a745; }
+        .comp-card h3 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+        .trad h3 { color: #6c757d; }
+        .hysa h3 { color: #155724; }
+        .comp-card .balance { font-size: 30px; font-weight: 900; }
+        .trad .balance { color: #495057; }
+        .hysa .balance { color: #155724; }
+        .comp-card .earned { font-size: 13px; margin-top: 4px; }
+        .winner-box { text-align: center; padding: 12px; background: #fff3cd; border-radius: 8px; font-size: 14px; font-weight: 600; color: #856404; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>High-Yield Savings Growth Calculator</h1>
+    <p class="subtitle">Compare your savings in a traditional bank vs. a high-yield savings account over time.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Starting Balance ($)</label>
+            <div class="input-row">
+                <input type="range" id="balance" min="100" max="100000" step="100" value="5000" oninput="sync('balance',this.value)">
+                <input type="number" id="balanceNum" value="5000" oninput="sync('balance',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Monthly Contribution ($)</label>
+            <div class="input-row">
+                <input type="range" id="monthly" min="0" max="2000" step="25" value="100" oninput="sync('monthly',this.value)">
+                <input type="number" id="monthlyNum" value="100" oninput="sync('monthly',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>HYSA Rate (%) <small style="font-weight:400;color:#999">— current ~4-5%</small></label>
+            <div class="input-row">
+                <input type="range" id="hysaRate" min="1" max="6" step="0.1" value="4.5" oninput="sync('hysaRate',this.value)">
+                <input type="number" id="hysaRateNum" value="4.5" step="0.1" oninput="sync('hysaRate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Traditional Bank Rate (%) <small style="font-weight:400;color:#999">— avg ~0.01-0.5%</small></label>
+            <div class="input-row">
+                <input type="range" id="tradRate" min="0.01" max="1" step="0.01" value="0.5" oninput="sync('tradRate',this.value)">
+                <input type="number" id="tradRateNum" value="0.5" step="0.01" oninput="sync('tradRate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Years</label>
+            <div class="input-row">
+                <input type="range" id="years" min="1" max="20" step="1" value="5" oninput="sync('years',this.value)">
+                <input type="number" id="yearsNum" value="5" min="1" max="20" oninput="sync('years',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="comparison">
+        <div class="comp-card trad">
+            <h3>Traditional Bank</h3>
+            <div class="balance" id="tradBalance">$0</div>
+            <div class="earned" id="tradEarned"></div>
+        </div>
+        <div class="comp-card hysa">
+            <h3>High-Yield Savings (HYSA)</h3>
+            <div class="balance" id="hysaBalance">$0</div>
+            <div class="earned" id="hysaEarned"></div>
+        </div>
+    </div>
+
+    <div class="winner-box" id="winnerBox"></div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function calcBalance(start, monthly, annualRate, years) {
+    const r = annualRate / 100 / 12;
+    const n = years * 12;
+    return start * Math.pow(1+r, n) + monthly * ((Math.pow(1+r,n)-1)/r);
+}
+
+function recalc() {
+    const balance = parseFloat(document.getElementById('balance').value);
+    const monthly = parseFloat(document.getElementById('monthly').value);
+    const hysaRate = parseFloat(document.getElementById('hysaRate').value);
+    const tradRate = parseFloat(document.getElementById('tradRate').value);
+    const years = parseInt(document.getElementById('years').value);
+
+    const totalContrib = balance + monthly * years * 12;
+    const tradFinal = calcBalance(balance, monthly, tradRate, years);
+    const hysaFinal = calcBalance(balance, monthly, hysaRate, years);
+    const tradEarned = tradFinal - totalContrib;
+    const hysaEarned = hysaFinal - totalContrib;
+    const diff = hysaFinal - tradFinal;
+
+    document.getElementById('tradBalance').textContent = fmt(tradFinal);
+    document.getElementById('tradEarned').textContent = `Interest earned: ${fmt(tradEarned)}`;
+    document.getElementById('hysaBalance').textContent = fmt(hysaFinal);
+    document.getElementById('hysaEarned').textContent = `Interest earned: ${fmt(hysaEarned)}`;
+    document.getElementById('winnerBox').textContent = `The HYSA earns you ${fmt(diff)} more over ${years} year${years > 1 ? 's' : ''} on the same money — with zero extra effort.`;
+
+    const labels = [];
+    const tradData = [];
+    const hysaData = [];
+    for (let y = 0; y <= years; y++) {
+        labels.push('Yr ' + y);
+        tradData.push(Math.round(calcBalance(balance, monthly, tradRate, y)));
+        hysaData.push(Math.round(calcBalance(balance, monthly, hysaRate, y)));
+    }
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: `Traditional Bank (${tradRate}%)`, data: tradData, borderColor: '#6c757d', backgroundColor: '#6c757d15', tension: 0.3, borderWidth: 2 },
+                    { label: `High-Yield Savings (${hysaRate}%)`, data: hysaData, borderColor: '#28a745', backgroundColor: '#28a74520', tension: 0.3, borderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { ticks: { callback: v => '$' + v.toLocaleString() } } }
+            }
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].label = `Traditional Bank (${tradRate}%)`;
+        chart.data.datasets[0].data = tradData;
+        chart.data.datasets[1].label = `High-Yield Savings (${hysaRate}%)`;
+        chart.data.datasets[1].data = hysaData;
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

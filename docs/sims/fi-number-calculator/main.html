@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FI Number Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .fi-hero { text-align: center; padding: 20px; border-radius: 12px; background: #f0f7fa; border: 2px solid #1a5f7a; margin-bottom: 20px; }
+        .fi-hero .fi-num { font-size: 48px; font-weight: 900; color: #1a5f7a; }
+        .fi-hero .fi-label { font-size: 13px; color: #666; margin-bottom: 8px; }
+        .fi-hero .years { font-size: 20px; font-weight: 700; color: #28a745; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat { background: #f8f9fa; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat .val { font-size: 20px; font-weight: 800; color: #1a5f7a; }
+        .stat .lbl { font-size: 11px; color: #666; margin-top: 3px; }
+        .milestones { margin-bottom: 20px; }
+        .milestones h3 { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; }
+        .milestone-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; font-size: 13px; background: #f8f9fa; }
+        .milestone-row.reached { background: #d4edda; color: #155724; font-weight: 600; }
+        .milestone-row .badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; background: #e9ecef; }
+        .milestone-row.reached .badge { background: #28a74520; color: #155724; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>FI Number Calculator</h1>
+    <p class="subtitle">Find your Financial Independence number and see how many years until you get there.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Annual Expenses ($)</label>
+            <div class="input-row">
+                <input type="range" id="expenses" min="10000" max="200000" step="1000" value="40000" oninput="sync('expenses',this.value)">
+                <input type="number" id="expensesNum" value="40000" oninput="sync('expenses',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Current Savings / Investments ($)</label>
+            <div class="input-row">
+                <input type="range" id="current" min="0" max="1000000" step="1000" value="10000" oninput="sync('current',this.value)">
+                <input type="number" id="currentNum" value="10000" oninput="sync('current',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Annual Savings / Investment ($)</label>
+            <div class="input-row">
+                <input type="range" id="annualSavings" min="1000" max="100000" step="500" value="15000" oninput="sync('annualSavings',this.value)">
+                <input type="number" id="annualSavingsNum" value="15000" oninput="sync('annualSavings',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Expected Real Return (%)</label>
+            <div class="input-row">
+                <input type="range" id="retRate" min="4" max="12" step="0.5" value="7" oninput="sync('retRate',this.value)">
+                <input type="number" id="retRateNum" value="7" step="0.5" oninput="sync('retRate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Withdrawal Rate (%)</label>
+            <div class="input-row">
+                <input type="range" id="withdrawRate" min="2" max="6" step="0.1" value="4" oninput="sync('withdrawRate',this.value)">
+                <input type="number" id="withdrawRateNum" value="4" step="0.1" oninput="sync('withdrawRate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Current Age</label>
+            <div class="input-row">
+                <input type="range" id="age" min="18" max="60" step="1" value="25" oninput="sync('age',this.value)">
+                <input type="number" id="ageNum" value="25" oninput="sync('age',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="fi-hero">
+        <div class="fi-label">Your FI Number (annual expenses / withdrawal rate)</div>
+        <div class="fi-num" id="fiNumber">$1,000,000</div>
+        <div class="years" id="yearsToFI">— years to Financial Independence</div>
+        <div style="font-size:13px;color:#555;margin-top:6px" id="fiAge"></div>
+    </div>
+
+    <div class="stats">
+        <div class="stat"><div class="val" id="savingsRate">0%</div><div class="lbl">Savings Rate</div></div>
+        <div class="stat"><div class="val" id="coastFI">$0</div><div class="lbl">Coast FI Number</div></div>
+        <div class="stat"><div class="val" id="annualWithdraw">$0</div><div class="lbl">Annual Withdrawals at FI</div></div>
+        <div class="stat"><div class="val" id="passiveIncome">$0/mo</div><div class="lbl">Monthly Passive Income at FI</div></div>
+    </div>
+
+    <div class="milestones">
+        <h3>FIRE Milestones</h3>
+        <div id="milestoneList"></div>
+    </div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function recalc() {
+    const expenses = parseFloat(document.getElementById('expenses').value);
+    const current = parseFloat(document.getElementById('current').value);
+    const annualSavings = parseFloat(document.getElementById('annualSavings').value);
+    const retRate = parseFloat(document.getElementById('retRate').value) / 100;
+    const withdrawRate = parseFloat(document.getElementById('withdrawRate').value) / 100;
+    const age = parseInt(document.getElementById('age').value);
+
+    const fiNumber = expenses / withdrawRate;
+    document.getElementById('fiNumber').textContent = fmt(fiNumber);
+    document.getElementById('annualWithdraw').textContent = fmt(expenses);
+    document.getElementById('passiveIncome').textContent = fmt(expenses / 12) + '/mo';
+
+    // Estimate income for savings rate (rough)
+    const impliedIncome = annualSavings / 0.3; // assume 30% savings rate for display
+    document.getElementById('savingsRate').textContent = (annualSavings / Math.max(annualSavings * 3, 1) * 100).toFixed(0) + '%';
+
+    // Coast FI (how much you need now to coast to FI by 65, no more contributions)
+    const yearsTo65 = 65 - age;
+    const coastFI = fiNumber / Math.pow(1 + retRate, yearsTo65);
+    document.getElementById('coastFI').textContent = fmt(coastFI);
+
+    // Simulate year by year
+    let balance = current;
+    let yearsToFI = null;
+    const labels = ['Now'];
+    const balanceData = [Math.round(current)];
+    const fiLine = [];
+
+    for (let y = 1; y <= 50; y++) {
+        balance = balance * (1 + retRate) + annualSavings;
+        labels.push('Yr ' + y + '\n(Age ' + (age + y) + ')');
+        balanceData.push(Math.round(balance));
+        fiLine.push(Math.round(fiNumber));
+        if (yearsToFI === null && balance >= fiNumber) {
+            yearsToFI = y;
+        }
+    }
+    fiLine.unshift(Math.round(fiNumber)); // add for 'Now'
+
+    if (yearsToFI !== null) {
+        document.getElementById('yearsToFI').textContent = `${yearsToFI} years to Financial Independence`;
+        document.getElementById('fiAge').textContent = `You could reach FI at age ${age + yearsToFI} — ${Math.max(0, 65 - age - yearsToFI)} years before traditional retirement.`;
+    } else {
+        document.getElementById('yearsToFI').textContent = 'Increase savings rate to reach FI sooner';
+        document.getElementById('fiAge').textContent = 'Try increasing your annual savings or reducing expenses.';
+    }
+
+    // Milestones
+    const milestones = [
+        { name: 'Coast FIRE', desc: 'Can stop contributing; portfolio grows to FI by 65', target: coastFI },
+        { name: 'Barista FIRE (25%)', desc: 'Part-time work covers basic expenses', target: fiNumber * 0.25 },
+        { name: 'Lean FIRE (50%)', desc: 'Minimalist lifestyle covered', target: fiNumber * 0.50 },
+        { name: 'FIRE (100%)', desc: 'Fully financially independent', target: fiNumber },
+        { name: 'Fat FIRE (150%)', desc: 'Comfortable lifestyle, extra buffer', target: fiNumber * 1.50 }
+    ];
+
+    document.getElementById('milestoneList').innerHTML = milestones.map(m => {
+        const reached = current >= m.target;
+        let eta = '';
+        if (!reached) {
+            let bal = current, yr = 0;
+            while (bal < m.target && yr < 60) { bal = bal * (1+retRate) + annualSavings; yr++; }
+            eta = yr < 60 ? ` — ~${yr} years (age ${age+yr})` : ' — increase savings';
+        }
+        return `<div class="milestone-row ${reached ? 'reached' : ''}">
+            <span><strong>${m.name}</strong>${eta} — ${m.desc}</span>
+            <span class="badge">${fmt(m.target)}</span>
+        </div>`;
+    }).join('');
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels: labels.slice(0, 41),
+                datasets: [
+                    { label: 'Portfolio Value', data: balanceData.slice(0, 41), borderColor: '#1a5f7a', backgroundColor: '#1a5f7a20', tension: 0.3, borderWidth: 2 },
+                    { label: 'FI Number', data: fiLine.slice(0, 41), borderColor: '#28a745', borderDash: [6,3], pointRadius: 0, borderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } } }
+            }
+        });
+    } else {
+        chart.data.labels = labels.slice(0, 41);
+        chart.data.datasets[0].data = balanceData.slice(0, 41);
+        chart.data.datasets[1].data = fiLine.slice(0, 41);
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

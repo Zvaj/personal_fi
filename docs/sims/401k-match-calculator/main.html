@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>401(k) Match Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        select { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; background: white; }
+        .results-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat-card { background: #f0f7fa; border-radius: 10px; padding: 14px; text-align: center; }
+        .stat-card .value { font-size: 26px; font-weight: 800; color: #1a5f7a; }
+        .stat-card .label { font-size: 12px; color: #666; margin-top: 4px; }
+        .free-money { background: #d4edda; }
+        .free-money .value { color: #155724; }
+        .warning-box { background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px; margin-bottom: 20px; font-size: 13px; display: none; }
+        .warning-box strong { color: #856404; }
+        .chart-area { max-width: 500px; margin: 0 auto; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>401(k) Match Calculator</h1>
+    <p class="subtitle">See exactly how much free money your employer match adds — and what you lose by not contributing enough.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Annual Salary</label>
+            <div class="input-row">
+                <input type="range" id="salary" min="20000" max="150000" step="1000" value="50000" oninput="sync('salary',this.value)">
+                <input type="number" id="salaryNum" value="50000" min="20000" max="150000" step="1000" oninput="sync('salary',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Your Contribution Rate (%)</label>
+            <div class="input-row">
+                <input type="range" id="contrib" min="0" max="25" step="0.5" value="6" oninput="sync('contrib',this.value)">
+                <input type="number" id="contribNum" value="6" min="0" max="25" step="0.5" oninput="sync('contrib',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Employer Match Formula</label>
+            <select id="matchType" onchange="recalc()">
+                <option value="50_6">50% match on first 6% (common)</option>
+                <option value="100_3">100% match on first 3%</option>
+                <option value="100_4">100% match on first 4%</option>
+                <option value="100_6">100% match on first 6%</option>
+                <option value="none">No employer match</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label>Years to Retirement</label>
+            <div class="input-row">
+                <input type="range" id="years" min="5" max="40" step="1" value="30" oninput="sync('years',this.value)">
+                <input type="number" id="yearsNum" value="30" min="5" max="40" step="1" oninput="sync('years',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div id="warningBox" class="warning-box"></div>
+
+    <div class="results-grid">
+        <div class="stat-card">
+            <div class="value" id="yourContrib">$0</div>
+            <div class="label">Your Annual Contribution</div>
+        </div>
+        <div class="stat-card free-money">
+            <div class="value" id="matchAmt">$0</div>
+            <div class="label">Employer Match (Free Money!)</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="totalAnnual">$0</div>
+            <div class="label">Total Into 401(k)/Year</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="lostMatch">$0</div>
+            <div class="label">Match Left on Table/Year</div>
+        </div>
+        <div class="stat-card">
+            <div class="value" id="projectedVal">$0</div>
+            <div class="label">Projected Value (7% avg)</div>
+        </div>
+    </div>
+
+    <div class="chart-area"><canvas id="chart"></canvas></div>
+</div>
+<script>
+let chart;
+
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+
+function getMatchFormula() {
+    const v = document.getElementById('matchType').value;
+    if (v === 'none') return { rate: 0, cap: 0 };
+    const [rate, cap] = v.split('_').map(Number);
+    return { rate: rate / 100, cap: cap / 100 };
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function recalc() {
+    const salary = parseFloat(document.getElementById('salary').value);
+    const contrib = parseFloat(document.getElementById('contrib').value) / 100;
+    const years = parseFloat(document.getElementById('years').value);
+    const { rate, cap } = getMatchFormula();
+
+    const yourAnnual = salary * contrib;
+    const matchAmt = salary * Math.min(contrib, cap) * rate;
+    const maxMatch = salary * cap * rate;
+    const lostMatch = maxMatch - matchAmt;
+
+    document.getElementById('yourContrib').textContent = fmt(yourAnnual);
+    document.getElementById('matchAmt').textContent = fmt(matchAmt);
+    document.getElementById('totalAnnual').textContent = fmt(yourAnnual + matchAmt);
+    document.getElementById('lostMatch').textContent = fmt(lostMatch);
+
+    // Project at 7%
+    const r = 0.07 / 12;
+    const n = years * 12;
+    const monthly = (yourAnnual + matchAmt) / 12;
+    const projected = monthly * ((Math.pow(1 + r, n) - 1) / r);
+    document.getElementById('projectedVal').textContent = fmt(projected);
+
+    // Warning
+    const wb = document.getElementById('warningBox');
+    if (lostMatch > 0) {
+        wb.style.display = 'block';
+        wb.innerHTML = `<strong>⚠️ You're leaving ${fmt(lostMatch)}/year in free money unclaimed.</strong> Increase your contribution to ${(cap * 100).toFixed(0)}% to capture the full match. Over ${years} years, that lost match could grow to <strong>${fmt(lostMatch * 12 * ((Math.pow(1.07/12+1,n)-1)/((0.07/12))) / 12)}</strong>.`;
+    } else {
+        wb.style.display = 'none';
+    }
+
+    updateChart(yourAnnual, matchAmt, years);
+}
+
+function updateChart(yourAnnual, matchAmt, years) {
+    const labels = [];
+    const yourData = [];
+    const matchData = [];
+    let yourTotal = 0, matchTotal = 0;
+    const r = 0.07 / 12;
+
+    for (let y = 1; y <= years; y++) {
+        const n = y * 12;
+        const monthly = yourAnnual / 12;
+        const matchMonthly = matchAmt / 12;
+        yourTotal = monthly * ((Math.pow(1+r,n)-1)/r);
+        matchTotal = matchMonthly * ((Math.pow(1+r,n)-1)/r);
+        if (y % Math.max(1, Math.floor(years/10)) === 0 || y === years) {
+            labels.push('Yr ' + y);
+            yourData.push(Math.round(yourTotal));
+            matchData.push(Math.round(matchTotal));
+        }
+    }
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Your Contributions (grown)', data: yourData, backgroundColor: '#1a5f7a80', borderColor: '#1a5f7a', borderWidth: 1, borderRadius: 4 },
+                    { label: 'Employer Match (grown)', data: matchData, backgroundColor: '#28a74580', borderColor: '#28a745', borderWidth: 1, borderRadius: 4 }
+                ]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } } } }
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = yourData;
+        chart.data.datasets[1].data = matchData;
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

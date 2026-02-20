@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Needs vs. Wants Sorter</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 16px; }
+        .income-row { display: flex; align-items: center; gap: 12px; justify-content: center; margin-bottom: 20px; }
+        .income-row label { font-size: 14px; font-weight: 600; color: #555; }
+        .income-row input { padding: 7px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; width: 120px; text-align: center; }
+        .sorter-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+        @media(max-width:650px){ .sorter-grid { grid-template-columns: 1fr; } }
+        .bucket { border-radius: 10px; padding: 14px; min-height: 200px; }
+        .bucket-unsorted { background: #f8f9fa; border: 2px dashed #ccc; }
+        .bucket-needs { background: #e8f4f8; border: 2px solid #1a5f7a; }
+        .bucket-wants { background: #fff3e6; border: 2px solid #fd7e14; }
+        .bucket-savings { background: #d4edda; border: 2px solid #28a745; }
+        .bucket h3 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+        .bucket-unsorted h3 { color: #555; }
+        .bucket-needs h3 { color: #1a5f7a; }
+        .bucket-wants h3 { color: #c85c00; }
+        .bucket-savings h3 { color: #155724; }
+        .bucket .total { font-size: 12px; font-weight: 600; margin-bottom: 8px; }
+        .expense-chip { display: flex; justify-content: space-between; align-items: center; padding: 7px 10px; border-radius: 6px; background: white; border: 1px solid #e0e0e0; margin-bottom: 5px; font-size: 12px; cursor: pointer; transition: all 0.15s; user-select: none; }
+        .expense-chip:hover { transform: translateY(-1px); box-shadow: 0 2px 6px rgba(0,0,0,0.12); }
+        .expense-chip .amt { font-weight: 700; color: #1a5f7a; }
+        .expense-chip .move-btns { display: flex; gap: 3px; }
+        .move-btn { padding: 2px 7px; border-radius: 4px; border: none; font-size: 10px; font-weight: 700; cursor: pointer; }
+        .btn-need { background: #1a5f7a; color: white; }
+        .btn-want { background: #fd7e14; color: white; }
+        .btn-save { background: #28a745; color: white; }
+        .btn-back { background: #e9ecef; color: #555; }
+        .budget-display { margin-bottom: 20px; }
+        .budget-display h3 { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; text-align: center; }
+        .pct-bars { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+        .pct-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .pct-row .bar-wrap { flex: 1; background: #e9ecef; border-radius: 4px; height: 20px; overflow: hidden; }
+        .pct-row .bar { height: 20px; border-radius: 4px; transition: width 0.4s; text-align: right; padding-right: 6px; font-size: 11px; font-weight: 700; color: white; line-height: 20px; }
+        .pct-row .name { width: 70px; font-weight: 600; }
+        .pct-row .pct-label { width: 45px; text-align: right; font-weight: 700; }
+        .target-badge { font-size: 11px; padding: 3px 8px; border-radius: 10px; font-weight: 600; }
+        .on-target { background: #d4edda; color: #155724; }
+        .off-target { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Needs vs. Wants Sorter</h1>
+    <p class="subtitle">Categorize each expense as a need, want, or savings. See how your choices affect your 50/30/20 budget split.</p>
+
+    <div class="income-row">
+        <label>Monthly Take-Home Income ($)</label>
+        <input type="number" id="income" value="3000" oninput="recalc()">
+    </div>
+
+    <div class="sorter-grid">
+        <div class="bucket bucket-unsorted">
+            <h3>📋 Expenses to Sort</h3>
+            <div class="total" id="unsortedTotal">$0 unsorted</div>
+            <div id="unsortedList"></div>
+        </div>
+        <div class="bucket bucket-needs">
+            <h3>🏠 Needs (50% target)</h3>
+            <div class="total" id="needsTotal">$0 / $0</div>
+            <div id="needsList"></div>
+        </div>
+        <div class="bucket bucket-wants">
+            <h3>🎉 Wants (30% target)</h3>
+            <div class="total" id="wantsTotal">$0 / $0</div>
+            <div id="wantsList"></div>
+        </div>
+    </div>
+
+    <div class="budget-display">
+        <h3>Your 50/30/20 Breakdown</h3>
+        <div class="pct-bars">
+            <div class="pct-row">
+                <span class="name">Needs</span>
+                <div class="bar-wrap"><div class="bar" id="needsBar" style="width:0%;background:#1a5f7a"></div></div>
+                <span class="pct-label" id="needsPct">0%</span>
+                <span class="target-badge" id="needsBadge">Target: 50%</span>
+            </div>
+            <div class="pct-row">
+                <span class="name">Wants</span>
+                <div class="bar-wrap"><div class="bar" id="wantsBar" style="width:0%;background:#fd7e14"></div></div>
+                <span class="pct-label" id="wantsPct">0%</span>
+                <span class="target-badge" id="wantsBadge">Target: 30%</span>
+            </div>
+            <div class="pct-row">
+                <span class="name">Savings</span>
+                <div class="bar-wrap"><div class="bar" id="savingsBar" style="width:0%;background:#28a745"></div></div>
+                <span class="pct-label" id="savingsPct">0%</span>
+                <span class="target-badge" id="savingsBadge">Target: 20%</span>
+            </div>
+            <div class="pct-row">
+                <span class="name" style="color:#dc3545">Uncat.</span>
+                <div class="bar-wrap"><div class="bar" id="uncatBar" style="width:0%;background:#dc3545"></div></div>
+                <span class="pct-label" id="uncatPct">100%</span>
+                <span class="target-badge off-target" id="uncatBadge">$0 to sort</span>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+const expenses = [
+    { name: "Rent", amt: 900, cat: null, suggested: "need" },
+    { name: "Groceries", amt: 250, cat: null, suggested: "need" },
+    { name: "Car payment", amt: 200, cat: null, suggested: "need" },
+    { name: "Utilities", amt: 120, cat: null, suggested: "need" },
+    { name: "Health insurance", amt: 80, cat: null, suggested: "need" },
+    { name: "Dining out", amt: 150, cat: null, suggested: "want" },
+    { name: "Netflix/streaming", amt: 45, cat: null, suggested: "want" },
+    { name: "New clothes", amt: 100, cat: null, suggested: "want" },
+    { name: "Gym membership", amt: 40, cat: null, suggested: "want" },
+    { name: "Coffee shops", amt: 60, cat: null, suggested: "want" },
+    { name: "Emergency fund", amt: 200, cat: null, suggested: "save" },
+    { name: "Roth IRA", amt: 100, cat: null, suggested: "save" }
+];
+
+function move(i, cat) { expenses[i].cat = cat; render(); recalc(); }
+
+function render() {
+    const lists = { null: 'unsortedList', need: 'needsList', want: 'wantsList', save: 'needsList' };
+    ['unsortedList','needsList','wantsList'].forEach(id => document.getElementById(id).innerHTML = '');
+
+    expenses.forEach((exp, i) => {
+        const cat = exp.cat;
+        let targetList = cat === null ? 'unsortedList' : cat === 'need' ? 'needsList' : cat === 'save' ? 'needsList' : 'wantsList';
+        // savings go into needs column for display
+        const div = document.createElement('div');
+        div.className = 'expense-chip';
+        let btns = '';
+        if (cat !== null) {
+            btns += `<button class="move-btn btn-back" onclick="move(${i},null)">↩</button>`;
+        } else {
+            btns += `<button class="move-btn btn-need" onclick="move(${i},'need')">Need</button>`;
+            btns += `<button class="move-btn btn-want" onclick="move(${i},'want')">Want</button>`;
+            btns += `<button class="move-btn btn-save" onclick="move(${i},'save')">Save</button>`;
+        }
+        const icon = cat === 'need' ? '🏠 ' : cat === 'want' ? '🎉 ' : cat === 'save' ? '💰 ' : '';
+        div.innerHTML = `<span>${icon}${exp.name}</span><div style="display:flex;align-items:center;gap:6px"><span class="amt">$${exp.amt}</span><div class="move-btns">${btns}</div></div>`;
+        document.getElementById(targetList).appendChild(div);
+    });
+}
+
+function recalc() {
+    const income = parseFloat(document.getElementById('income').value) || 3000;
+    const needs = expenses.filter(e => e.cat === 'need').reduce((s,e) => s+e.amt, 0);
+    const wants = expenses.filter(e => e.cat === 'want').reduce((s,e) => s+e.amt, 0);
+    const savings = expenses.filter(e => e.cat === 'save').reduce((s,e) => s+e.amt, 0);
+    const uncat = expenses.filter(e => e.cat === null).reduce((s,e) => s+e.amt, 0);
+
+    document.getElementById('unsortedTotal').textContent = `$${uncat.toLocaleString()} unsorted`;
+    document.getElementById('needsTotal').textContent = `$${needs.toLocaleString()} / $${(income*0.5).toLocaleString()} target`;
+    document.getElementById('wantsTotal').textContent = `$${wants.toLocaleString()} / $${(income*0.3).toLocaleString()} target`;
+
+    function setPct(barId, pctId, badgeId, amt, target) {
+        const pct = Math.min(Math.round(amt / income * 100), 100);
+        document.getElementById(barId).style.width = pct + '%';
+        document.getElementById(pctId).textContent = pct + '%';
+        const onTarget = Math.abs(pct - target) <= 5;
+        document.getElementById(badgeId).className = 'target-badge ' + (onTarget ? 'on-target' : 'off-target');
+        document.getElementById(badgeId).textContent = `${onTarget ? '✓ ' : ''}Target: ${target}%`;
+    }
+    setPct('needsBar','needsPct','needsBadge', needs, 50);
+    setPct('wantsBar','wantsPct','wantsBadge', wants, 30);
+    setPct('savingsBar','savingsPct','savingsBadge', savings, 20);
+
+    const uncatPct = Math.round(uncat / income * 100);
+    document.getElementById('uncatBar').style.width = uncatPct + '%';
+    document.getElementById('uncatPct').textContent = uncatPct + '%';
+    document.getElementById('uncatBadge').textContent = `$${uncat.toLocaleString()} to sort`;
+    document.getElementById('uncatBadge').className = 'target-badge ' + (uncat === 0 ? 'on-target' : 'off-target');
+}
+
+render(); recalc();
+</script>
+</body>
+</html>

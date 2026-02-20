@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Automation Flowchart</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .income-control { display: flex; align-items: center; gap: 14px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+        .income-control label { font-size: 14px; font-weight: 600; color: #555; }
+        .income-control input[type="range"] { width: 200px; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        .income-control input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        .income-control input[type="number"] { width: 100px; padding: 7px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; text-align: center; }
+        .flowchart { display: flex; flex-direction: column; align-items: center; gap: 0; }
+        .paycheck-box { background: #1a5f7a; color: white; padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 700; text-align: center; }
+        .paycheck-box .amount { font-size: 24px; font-weight: 900; }
+        .arrow { width: 2px; height: 20px; background: #adb5bd; margin: 0 auto; }
+        .split { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 0; width: 100%; }
+        .split-arrow { display: flex; flex-direction: column; align-items: center; }
+        .h-line { height: 2px; background: #adb5bd; width: 60px; }
+        .flow-node { border-radius: 10px; padding: 12px 14px; text-align: center; min-width: 140px; max-width: 160px; border: 2px solid; position: relative; cursor: pointer; transition: all 0.2s; }
+        .flow-node:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .flow-node.off { opacity: 0.4; filter: grayscale(0.8); }
+        .flow-node .node-title { font-size: 12px; font-weight: 700; }
+        .flow-node .node-amount { font-size: 18px; font-weight: 900; margin: 4px 0; }
+        .flow-node .node-pct { font-size: 11px; }
+        .flow-node .toggle { font-size: 10px; padding: 2px 8px; border-radius: 8px; border: none; cursor: pointer; margin-top: 5px; font-weight: 600; }
+        .node-401k { background: #d1ecf1; border-color: #17a2b8; }
+        .node-401k .node-amount { color: #0c5460; }
+        .node-roth { background: #e8f4f8; border-color: #1a5f7a; }
+        .node-roth .node-amount { color: #1a5f7a; }
+        .node-hysa { background: #d4edda; border-color: #28a745; }
+        .node-hysa .node-amount { color: #155724; }
+        .node-bills { background: #f8d7da; border-color: #dc3545; }
+        .node-bills .node-amount { color: #721c24; }
+        .node-checking { background: #fff3cd; border-color: #ffc107; }
+        .node-checking .node-amount { color: #856404; }
+        .summary-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 20px; }
+        .summary-table th { background: #1a5f7a; color: white; padding: 8px 12px; text-align: left; }
+        .summary-table td { padding: 7px 12px; border-bottom: 1px solid #e9ecef; }
+        .summary-table tr:last-child td { border-bottom: none; font-weight: 700; background: #f0f7fa; }
+        .toggle-btn { padding: 2px 8px; border-radius: 8px; border: none; cursor: pointer; font-size: 10px; font-weight: 600; margin-top: 4px; }
+        .btn-on { background: #28a745; color: white; }
+        .btn-off { background: #dc3545; color: white; }
+        .insight { background: #f0f7fa; border-left: 4px solid #1a5f7a; padding: 12px 16px; border-radius: 6px; font-size: 13px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Financial Automation Flowchart</h1>
+    <p class="subtitle">See how your paycheck flows automatically to every account. Toggle items on/off to see the impact.</p>
+
+    <div class="income-control">
+        <label>Monthly Take-Home Pay ($)</label>
+        <input type="range" id="income" min="1500" max="15000" step="100" value="3500" oninput="syncIncome(this.value)">
+        <input type="number" id="incomeNum" value="3500" oninput="syncIncome(this.value)">
+    </div>
+
+    <div class="flowchart" id="flowchart"></div>
+
+    <table class="summary-table" id="summaryTable">
+        <thead><tr><th>Destination</th><th>Timing</th><th>Amount</th><th>% of Income</th></tr></thead>
+        <tbody id="summaryBody"></tbody>
+    </table>
+
+    <div class="insight" id="insight"></div>
+</div>
+<script>
+const automations = [
+    { id: 'k401', name: '401(k)', subtitle: '(pre-tax, auto)', pctOfGross: 0.06, color: 'node-401k', timing: 'Before paycheck', icon: '🏦', enabled: true },
+    { id: 'roth', name: 'Roth IRA', subtitle: '(monthly transfer)', fixedPct: 0.057, color: 'node-roth', timing: 'Payday', icon: '📈', enabled: true },
+    { id: 'hysa', name: 'Emergency Fund', subtitle: '(HYSA)', fixedPct: 0.086, color: 'node-hysa', timing: 'Payday', icon: '🛡️', enabled: true },
+    { id: 'bills', name: 'Autopay Bills', subtitle: '(rent, utilities, etc.)', fixedPct: 0.40, color: 'node-bills', timing: '1st of month', icon: '📋', enabled: true, locked: true },
+    { id: 'checking', name: 'Spending Money', subtitle: '(what\'s left)', isRemainder: true, color: 'node-checking', timing: 'Always', icon: '💳', enabled: true, locked: true }
+];
+
+function syncIncome(val) {
+    document.getElementById('income').value = val;
+    document.getElementById('incomeNum').value = val;
+    render();
+}
+
+function toggle(id) {
+    const item = automations.find(a => a.id === id);
+    if (item && !item.locked) { item.enabled = !item.enabled; render(); }
+}
+
+function render() {
+    const income = parseFloat(document.getElementById('income').value);
+
+    // Calculate amounts
+    let remaining = income;
+    automations.forEach(a => {
+        if (a.isRemainder) return;
+        if (!a.enabled) { a.amount = 0; return; }
+        if (a.pctOfGross) {
+            a.amount = Math.round(income * a.pctOfGross);
+        } else {
+            a.amount = Math.round(income * a.fixedPct);
+        }
+        remaining -= a.amount;
+    });
+    const rem = automations.find(a => a.isRemainder);
+    if (rem) rem.amount = Math.max(0, Math.round(remaining));
+
+    // Draw flowchart
+    const fc = document.getElementById('flowchart');
+    fc.innerHTML = `
+        <div class="paycheck-box">
+            <div>Monthly Take-Home Paycheck</div>
+            <div class="amount">$${income.toLocaleString()}</div>
+        </div>
+        <div class="arrow"></div>
+        <div class="split" id="nodeRow"></div>
+    `;
+
+    const row = document.getElementById('nodeRow');
+    automations.forEach(a => {
+        const pct = income > 0 ? (a.amount / income * 100).toFixed(0) : 0;
+        const isOn = a.enabled;
+        const nodeDiv = document.createElement('div');
+        nodeDiv.className = 'flow-node ' + a.color + (isOn ? '' : ' off');
+        nodeDiv.innerHTML = `
+            <div class="node-title">${a.icon} ${a.name}</div>
+            <div style="font-size:10px;color:#666">${a.subtitle}</div>
+            <div class="node-amount">$${a.amount.toLocaleString()}</div>
+            <div class="node-pct">${pct}% of income</div>
+            ${!a.locked ? `<button class="toggle-btn ${isOn ? 'btn-on' : 'btn-off'}" onclick="toggle('${a.id}')">${isOn ? 'ON ✓' : 'OFF ✗'}</button>` : ''}
+        `;
+        row.appendChild(nodeDiv);
+    });
+
+    // Summary table
+    const tbody = document.getElementById('summaryBody');
+    let totalAuto = 0;
+    tbody.innerHTML = automations.map(a => {
+        const pct = income > 0 ? (a.amount / income * 100).toFixed(0) : 0;
+        if (!a.isRemainder) totalAuto += a.enabled ? a.amount : 0;
+        const style = !a.enabled ? 'color:#aaa;text-decoration:line-through' : '';
+        return `<tr style="${style}">
+            <td>${a.icon} ${a.name}${a.locked ? '' : (!a.enabled ? ' <em>(off)</em>' : '')}</td>
+            <td>${a.timing}</td>
+            <td>$${a.amount.toLocaleString()}</td>
+            <td>${pct}%</td>
+        </tr>`;
+    }).join('') + `<tr>
+        <td colspan="2"><strong>Total Auto-Routed</strong></td>
+        <td><strong>$${totalAuto.toLocaleString()}</strong></td>
+        <td><strong>${income > 0 ? (totalAuto/income*100).toFixed(0) : 0}%</strong></td>
+    </tr>`;
+
+    // Insight
+    const spendable = rem ? rem.amount : 0;
+    const autoSavings = automations.filter(a => ['k401','roth','hysa'].includes(a.id) && a.enabled).reduce((s,a)=>s+a.amount,0);
+    const savingsRate = income > 0 ? (autoSavings / income * 100).toFixed(0) : 0;
+    document.getElementById('insight').innerHTML = `
+        <strong>Your Automation Summary:</strong> $${autoSavings.toLocaleString()} (${savingsRate}% of income) is automatically saved/invested before you can spend it.
+        You have <strong>$${spendable.toLocaleString()}/month</strong> left as flexible spending money for groceries, gas, dining, and entertainment.
+        ${savingsRate >= 20 ? ' ✓ You are meeting the 20% savings guideline!' : ' Try to automate at least 20% toward savings and investments.'}
+    `;
+}
+
+render();
+</script>
+</body>
+</html>

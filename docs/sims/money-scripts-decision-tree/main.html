@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Money Scripts Decision Tree</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 8px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 14px; margin-bottom: 24px; }
+        .progress { background: #e9ecef; border-radius: 8px; height: 8px; margin-bottom: 24px; }
+        .progress-bar { background: #1a5f7a; height: 8px; border-radius: 8px; transition: width 0.4s ease; }
+        .question-card { background: #f0f7fa; border-left: 4px solid #1a5f7a; border-radius: 8px; padding: 20px; margin-bottom: 20px; }
+        .question-num { font-size: 12px; color: #1a5f7a; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+        .question-text { font-size: 17px; font-weight: 600; line-height: 1.4; }
+        .btn-row { display: flex; gap: 12px; margin-top: 16px; }
+        .btn { flex: 1; padding: 12px; border: 2px solid #1a5f7a; border-radius: 8px; background: white; color: #1a5f7a; font-size: 15px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn:hover { background: #1a5f7a; color: white; }
+        .btn-yes { border-color: #28a745; color: #28a745; }
+        .btn-yes:hover { background: #28a745; color: white; }
+        .btn-no { border-color: #dc3545; color: #dc3545; }
+        .btn-no:hover { background: #dc3545; color: white; }
+        .result-card { border-radius: 12px; padding: 24px; text-align: center; display: none; }
+        .result-card h2 { font-size: 24px; margin-bottom: 12px; }
+        .result-card p { font-size: 15px; line-height: 1.6; color: #444; margin-bottom: 16px; }
+        .result-card .traits { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+        .result-card .trait { background: rgba(255,255,255,0.7); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .script-avoidance { background: #fef3cd; border: 2px solid #ffc107; }
+        .script-worship { background: #d1ecf1; border: 2px solid #17a2b8; }
+        .script-status { background: #f8d7da; border: 2px solid #dc3545; }
+        .script-vigilance { background: #d4edda; border: 2px solid #28a745; }
+        .reset-btn { padding: 10px 28px; background: #1a5f7a; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .reset-btn:hover { background: #145068; }
+        .path-indicator { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+        .path-step { font-size: 11px; padding: 3px 8px; border-radius: 10px; background: #e9ecef; color: #555; }
+        .path-step.yes { background: #d4edda; color: #155724; }
+        .path-step.no { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Money Scripts Decision Tree</h1>
+    <p class="subtitle">Answer 6 questions to discover your dominant money mindset</p>
+    <div class="progress"><div class="progress-bar" id="progressBar" style="width:0%"></div></div>
+    <div class="path-indicator" id="pathIndicator"></div>
+    <div id="questionArea">
+        <div class="question-card">
+            <div class="question-num" id="questionNum">Question 1 of 6</div>
+            <div class="question-text" id="questionText">Loading...</div>
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-yes" onclick="answer(true)">Yes</button>
+            <button class="btn btn-no" onclick="answer(false)">No</button>
+        </div>
+    </div>
+    <div class="result-card" id="resultCard">
+        <h2 id="resultTitle"></h2>
+        <div class="traits" id="resultTraits"></div>
+        <p id="resultDesc"></p>
+        <p id="resultAdvice"></p>
+        <button class="reset-btn" onclick="reset()">Start Over</button>
+    </div>
+</div>
+<script>
+// Decision tree: each node has a question; yes/no lead to next node id or result
+const tree = {
+    1: { q: "I worry about money even when I have enough to cover my bills.", yes: 2, no: 3 },
+    2: { q: "I believe you can never have too much money — more is always better.", yes: "worship", no: "vigilance" },
+    3: { q: "Money would solve most of my problems in life.", yes: 4, no: 5 },
+    4: { q: "I tend to spend money on things to show others I'm doing well.", yes: "status", no: "worship" },
+    5: { q: "Talking about money feels uncomfortable or even rude.", yes: 6, no: "vigilance" },
+    6: { q: "I sometimes avoid looking at my bank balance or bills.", yes: "avoidance", no: "status" }
+};
+
+const results = {
+    avoidance: {
+        title: "Money Avoidance",
+        cls: "script-avoidance",
+        traits: ["Avoids bills", "Financial anxiety", "Feels unworthy of wealth"],
+        desc: "You tend to believe money is bad, stressful, or something to avoid thinking about. This often leads to ignoring financial problems until they become crises.",
+        advice: "Small step: set a 10-minute 'money date' once a week to review your accounts. Awareness — even uncomfortable awareness — is the first step to change."
+    },
+    worship: {
+        title: "Money Worship",
+        cls: "script-worship",
+        traits: ["More is always better", "Work-focused", "Delayed happiness"],
+        desc: "You tend to believe that more money would solve your problems and make you happier. You may sacrifice relationships or wellbeing in pursuit of financial goals.",
+        advice: "Small step: write down three non-financial things that made you genuinely happy this week. Reconnecting with free sources of joy reduces the emotional pressure on money."
+    },
+    status: {
+        title: "Money Status",
+        cls: "script-status",
+        traits: ["Appearances matter", "Lifestyle inflation", "External validation"],
+        desc: "You tend to tie money and spending to self-worth and social standing. New cars, clothing brands, and visible purchases signal success to yourself and others.",
+        advice: "Small step: before any purchase over $50, ask: 'Am I buying this for me, or for how others will perceive me?' Awareness of the trigger is half the battle."
+    },
+    vigilance: {
+        title: "Money Vigilance",
+        cls: "script-vigilance",
+        traits: ["Diligent saver", "Financially disciplined", "Sometimes overly cautious"],
+        desc: "You tend to be alert, careful, and hardworking with money. You believe in saving and are reluctant to spend. This is generally healthy but can tip into anxiety.",
+        advice: "Small step: give yourself a small 'guilt-free spending' budget each month — even $20-50. Financial vigilance is a superpower, but rest and enjoyment matter too."
+    }
+};
+
+let current = 1;
+let pathLog = [];
+
+function render() {
+    const node = tree[current];
+    document.getElementById('questionNum').textContent = `Question ${pathLog.length + 1} of 6`;
+    document.getElementById('questionText').textContent = node.q;
+    const pct = (pathLog.length / 6) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    const pi = document.getElementById('pathIndicator');
+    pi.innerHTML = pathLog.map(p => `<span class="path-step ${p.ans}">${p.ans === 'yes' ? '✓' : '✗'} Q${p.q}</span>`).join('');
+}
+
+function answer(yes) {
+    const node = tree[current];
+    pathLog.push({ q: pathLog.length + 1, ans: yes ? 'yes' : 'no' });
+    const next = yes ? node.yes : node.no;
+    if (typeof next === 'string') {
+        showResult(next);
+    } else {
+        current = next;
+        render();
+    }
+}
+
+function showResult(type) {
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('questionArea').style.display = 'none';
+    const rc = document.getElementById('resultCard');
+    const r = results[type];
+    rc.className = 'result-card ' + r.cls;
+    rc.style.display = 'block';
+    document.getElementById('resultTitle').textContent = '🧠 ' + r.title;
+    document.getElementById('resultTraits').innerHTML = r.traits.map(t => `<span class="trait">${t}</span>`).join('');
+    document.getElementById('resultDesc').textContent = r.desc;
+    document.getElementById('resultAdvice').innerHTML = '<strong>Your next step:</strong> ' + r.advice;
+}
+
+function reset() {
+    current = 1;
+    pathLog = [];
+    document.getElementById('questionArea').style.display = 'block';
+    document.getElementById('resultCard').style.display = 'none';
+    render();
+}
+
+render();
+</script>
+</body>
+</html>

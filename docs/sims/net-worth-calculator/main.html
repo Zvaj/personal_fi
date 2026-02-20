@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Net Worth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media(max-width:600px){ .grid { grid-template-columns: 1fr; } }
+        .panel { border-radius: 10px; padding: 16px; }
+        .panel-assets { background: #d4edda; border: 2px solid #28a745; }
+        .panel-liabilities { background: #f8d7da; border: 2px solid #e74c3c; }
+        .panel h2 { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+        .panel-assets h2 { color: #155724; }
+        .panel-liabilities h2 { color: #721c24; }
+        .row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .row label { flex: 1; font-size: 13px; color: #444; }
+        .row input { width: 110px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 13px; text-align: right; }
+        .add-btn { background: none; border: 1px dashed #888; border-radius: 6px; padding: 5px 10px; font-size: 12px; color: #666; cursor: pointer; margin-top: 6px; }
+        .add-btn:hover { background: rgba(0,0,0,0.05); }
+        .del-btn { background: none; border: none; color: #aaa; cursor: pointer; font-size: 16px; padding: 0 4px; }
+        .del-btn:hover { color: #e74c3c; }
+        .net-worth-box { text-align: center; padding: 20px; border-radius: 12px; margin-bottom: 24px; transition: background 0.4s; }
+        .net-worth-box .label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .net-worth-box .value { font-size: 42px; font-weight: 800; }
+        .chart-area { max-width: 500px; margin: 0 auto 16px; }
+        .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+        .btn { padding: 9px 20px; border-radius: 8px; border: none; font-size: 13px; font-weight: 600; cursor: pointer; }
+        .btn-example { background: #1a5f7a; color: white; }
+        .btn-clear { background: #e9ecef; color: #555; }
+        .btn:hover { opacity: 0.85; }
+        .totals-row { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; padding-top: 8px; border-top: 2px solid rgba(0,0,0,0.15); margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Net Worth Calculator</h1>
+    <p class="subtitle">Your net worth = total assets − total liabilities. All calculations are local — nothing leaves your browser.</p>
+
+    <div class="grid">
+        <div class="panel panel-assets">
+            <h2>Assets (What You Own) 💰</h2>
+            <div id="assetRows"></div>
+            <div class="totals-row"><span>Total Assets</span><span id="totalAssets">$0</span></div>
+            <button class="add-btn" onclick="addRow('assets')">+ Add asset</button>
+        </div>
+        <div class="panel panel-liabilities">
+            <h2>Liabilities (What You Owe) 💳</h2>
+            <div id="liabilityRows"></div>
+            <div class="totals-row"><span>Total Liabilities</span><span id="totalLiabilities">$0</span></div>
+            <button class="add-btn" onclick="addRow('liabilities')">+ Add liability</button>
+        </div>
+    </div>
+
+    <div class="net-worth-box" id="netWorthBox">
+        <div class="label">Your Net Worth</div>
+        <div class="value" id="netWorthValue">$0</div>
+    </div>
+
+    <div class="chart-area"><canvas id="barChart" height="120"></canvas></div>
+
+    <div class="btn-row">
+        <button class="btn btn-example" onclick="loadExample()">Reset to Example</button>
+        <button class="btn btn-clear" onclick="clearAll()">Clear All</button>
+    </div>
+</div>
+<script>
+let assetData = [
+    { label: "Checking account", val: 1200 },
+    { label: "Savings account", val: 4500 },
+    { label: "Retirement account (401k/IRA)", val: 8000 },
+    { label: "Car (market value)", val: 12000 }
+];
+let liabilityData = [
+    { label: "Credit card balance", val: 2300 },
+    { label: "Student loans", val: 18000 },
+    { label: "Car loan", val: 7500 }
+];
+
+const exampleAssets = JSON.parse(JSON.stringify(assetData));
+const exampleLiabilities = JSON.parse(JSON.stringify(liabilityData));
+
+let chart;
+
+function fmt(n){ return '$' + Math.abs(n).toLocaleString('en-US', {minimumFractionDigits:0, maximumFractionDigits:0}); }
+function val(s){ return parseFloat(s.replace(/[^0-9.-]/g,'')) || 0; }
+
+function renderRows(type) {
+    const data = type === 'assets' ? assetData : liabilityData;
+    const container = document.getElementById(type === 'assets' ? 'assetRows' : 'liabilityRows');
+    container.innerHTML = '';
+    data.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'row';
+        row.innerHTML = `<label><input type="text" value="${item.label}" style="width:100%;border:none;background:transparent;font-size:13px;color:#444;" oninput="data[${i}].label=this.value"></label>
+            <input type="text" value="${fmt(item.val).replace('$','')}" oninput="updateVal('${type}',${i},this.value)" onblur="this.value=fmt(data[${i}].val).replace('$','')">
+            <button class="del-btn" onclick="deleteRow('${type}',${i})">×</button>`;
+        // Fix closure
+        row.querySelector('label input').addEventListener('input', (e) => { data[i].label = e.target.value; });
+        container.appendChild(row);
+    });
+    recalc();
+}
+
+function updateVal(type, i, raw) {
+    const data = type === 'assets' ? assetData : liabilityData;
+    data[i].val = val(raw);
+    recalc();
+}
+
+function addRow(type) {
+    const data = type === 'assets' ? assetData : liabilityData;
+    data.push({ label: type === 'assets' ? 'New asset' : 'New liability', val: 0 });
+    renderRows(type);
+}
+
+function deleteRow(type, i) {
+    const data = type === 'assets' ? assetData : liabilityData;
+    data.splice(i, 1);
+    renderRows(type);
+}
+
+function recalc() {
+    const totalA = assetData.reduce((s,d) => s + d.val, 0);
+    const totalL = liabilityData.reduce((s,d) => s + d.val, 0);
+    const nw = totalA - totalL;
+    document.getElementById('totalAssets').textContent = fmt(totalA);
+    document.getElementById('totalLiabilities').textContent = fmt(totalL);
+    document.getElementById('netWorthValue').textContent = (nw < 0 ? '-' : '') + fmt(nw);
+    const box = document.getElementById('netWorthBox');
+    if (nw >= 0) {
+        box.style.background = '#d4edda'; box.style.color = '#155724';
+    } else {
+        box.style.background = '#fef3cd'; box.style.color = '#856404';
+    }
+    updateChart(totalA, totalL);
+}
+
+function updateChart(a, l) {
+    if (!chart) {
+        chart = new Chart(document.getElementById('barChart'), {
+            type: 'bar',
+            data: {
+                labels: ['Assets', 'Liabilities'],
+                datasets: [{ data: [a, l], backgroundColor: ['#28a74580','#e74c3c80'], borderColor: ['#28a745','#e74c3c'], borderWidth: 2, borderRadius: 6 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { callback: v => '$' + v.toLocaleString() } } } }
+        });
+    } else {
+        chart.data.datasets[0].data = [a, l];
+        chart.update();
+    }
+}
+
+function renderAll() { renderRows('assets'); renderRows('liabilities'); }
+function loadExample() { assetData = JSON.parse(JSON.stringify(exampleAssets)); liabilityData = JSON.parse(JSON.stringify(exampleLiabilities)); renderAll(); }
+function clearAll() { assetData = []; liabilityData = []; renderAll(); }
+
+renderAll();
+</script>
+</body>
+</html>

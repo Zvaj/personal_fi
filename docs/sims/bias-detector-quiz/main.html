@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bias Detector Quiz</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 700px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 20px; }
+        .progress-bar-wrap { background: #e9ecef; border-radius: 8px; height: 8px; margin-bottom: 20px; }
+        .progress-bar { background: #1a5f7a; height: 8px; border-radius: 8px; transition: width 0.4s; }
+        .scenario { background: #f0f7fa; border-left: 4px solid #1a5f7a; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+        .scenario-num { font-size: 11px; text-transform: uppercase; font-weight: 700; color: #1a5f7a; margin-bottom: 6px; }
+        .scenario-text { font-size: 15px; line-height: 1.5; }
+        .question { font-size: 14px; font-weight: 600; margin: 12px 0 10px; }
+        .options { display: flex; flex-direction: column; gap: 8px; }
+        .option-btn { text-align: left; padding: 10px 14px; border: 2px solid #ddd; border-radius: 8px; background: white; cursor: pointer; font-size: 13px; transition: all 0.2s; }
+        .option-btn:hover:not(:disabled) { border-color: #1a5f7a; background: #f0f7fa; }
+        .option-btn.correct { border-color: #28a745; background: #d4edda; color: #155724; }
+        .option-btn.wrong { border-color: #dc3545; background: #f8d7da; color: #721c24; }
+        .option-btn.reveal { border-color: #28a745; background: #d4edda; color: #155724; }
+        .explanation { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; border-radius: 6px; font-size: 13px; margin-top: 10px; display: none; }
+        .explanation strong { color: #856404; }
+        .next-btn { margin-top: 14px; padding: 10px 24px; background: #1a5f7a; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; display: none; }
+        .next-btn:hover { background: #145068; }
+        .results { display: none; text-align: center; }
+        .results .score { font-size: 48px; font-weight: 800; color: #1a5f7a; margin: 16px 0 8px; }
+        .results .score-label { font-size: 18px; color: #444; margin-bottom: 20px; }
+        .bias-summary { display: flex; flex-direction: column; gap: 10px; text-align: left; margin-bottom: 20px; }
+        .bias-item { background: #f0f7fa; border-radius: 8px; padding: 12px; }
+        .bias-item strong { color: #1a5f7a; }
+        .retry-btn { padding: 10px 28px; background: #1a5f7a; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; }
+        .retry-btn:hover { background: #145068; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Bias Detector Quiz</h1>
+    <p class="subtitle">Can you spot the cognitive bias at work in each financial decision?</p>
+    <div class="progress-bar-wrap"><div class="progress-bar" id="pb" style="width:0%"></div></div>
+
+    <div id="quizArea">
+        <div class="scenario">
+            <div class="scenario-num" id="scNum">Scenario 1 of 6</div>
+            <div class="scenario-text" id="scText"></div>
+        </div>
+        <div class="question" id="scQ"></div>
+        <div class="options" id="options"></div>
+        <div class="explanation" id="explanation"></div>
+        <button class="next-btn" id="nextBtn" onclick="nextQuestion()">Next Scenario →</button>
+    </div>
+
+    <div class="results" id="results">
+        <p style="font-size:16px;color:#555;">You spotted</p>
+        <div class="score" id="finalScore"></div>
+        <div class="score-label">biases correctly identified</div>
+        <div class="bias-summary" id="biasSummary"></div>
+        <button class="retry-btn" onclick="restart()">Try Again</button>
+    </div>
+</div>
+<script>
+const questions = [
+    {
+        scenario: "Marcus bought Tesla stock at $300. It dropped to $180. His friend says 'Just sell and move on.' Marcus refuses: 'I need to at least get back to $300 before I sell.'",
+        question: "Which cognitive bias is Marcus showing?",
+        options: ["Anchoring bias", "Loss aversion / sunk cost fallacy", "Confirmation bias", "Herd mentality"],
+        correct: 1,
+        bias: "Sunk Cost Fallacy",
+        explanation: "Marcus is anchoring to his purchase price ($300) and refusing to make a rational decision about the stock's future. The $300 is gone regardless of what he does — that's a sunk cost. The decision should be: 'Is this stock likely to rise from $180?' not 'Will it get back to $300?'"
+    },
+    {
+        scenario: "Sarah reads that index funds beat actively managed funds 80% of the time. But she dismisses this and only reads articles about fund managers who beat the market, using those stories to justify her active fund choice.",
+        question: "Which bias is Sarah demonstrating?",
+        options: ["Loss aversion", "Recency bias", "Confirmation bias", "Status quo bias"],
+        correct: 2,
+        bias: "Confirmation Bias",
+        explanation: "Sarah is seeking out information that confirms what she already believes (that active managers can win) and ignoring contradictory evidence. Confirmation bias is especially dangerous with investing because it causes us to see only what supports our existing decisions."
+    },
+    {
+        scenario: "In early 2021, everyone on social media is talking about Dogecoin. Kevin had never considered crypto, but he invests $2,000 because 'everyone is making money.' He buys at the peak.",
+        question: "Which bias drove Kevin's decision?",
+        options: ["Anchoring bias", "Herd mentality / FOMO", "Sunk cost fallacy", "Optimism bias"],
+        correct: 1,
+        bias: "Herd Mentality / FOMO",
+        explanation: "Kevin invested not because of research or personal financial goals, but because everyone else seemed to be doing it. FOMO (Fear Of Missing Out) is one of the most costly biases in investing. By the time 'everyone' is talking about an investment, the gains are usually already gone."
+    },
+    {
+        scenario: "The market drops 15% in one month. Priya's retirement account is down $8,000 on paper. Even though she's 30 years from retirement, she moves everything to cash to 'stop the bleeding.'",
+        question: "Which bias is driving Priya's decision?",
+        options: ["Recency bias", "Loss aversion", "Anchoring", "Survivorship bias"],
+        correct: 1,
+        bias: "Loss Aversion",
+        explanation: "Research by Kahneman & Tversky shows losses feel about twice as painful as equivalent gains feel good. Priya's portfolio hasn't lost anything until she sells — paper losses are temporary for long-term investors. By selling, she locks in the loss and misses the recovery."
+    },
+    {
+        scenario: "James hears about a stock that 10× in price last year. He thinks: 'If it did it once, it can do it again.' He invests heavily in the same stock.",
+        question: "What bias is most at play?",
+        options: ["Recency bias", "Status quo bias", "Loss aversion", "Anchoring"],
+        correct: 0,
+        bias: "Recency Bias",
+        explanation: "Recency bias makes us assume that recent trends will continue. Last year's best-performing stocks are actually more likely to underperform going forward — a phenomenon called 'reversion to the mean.' Past performance does not predict future results."
+    },
+    {
+        scenario: "You see an ad on TikTok: 'I turned $500 into $50,000 in 6 months using this crypto strategy. Here's proof.' You don't see any videos from people who tried the same strategy and lost everything.",
+        question: "What kind of bias does this illustrate?",
+        options: ["Confirmation bias", "Survivorship bias", "Anchoring bias", "Herd mentality"],
+        correct: 1,
+        bias: "Survivorship Bias",
+        explanation: "You only see the winners — the people who got lucky. The many people who tried the same strategy and lost money don't post about it. Survivorship bias makes risky strategies look reliable because we only hear the success stories. Always ask: 'What happened to everyone else who tried this?'"
+    }
+];
+
+let current = 0;
+let score = 0;
+let answered = false;
+let missed = [];
+
+function render() {
+    const q = questions[current];
+    document.getElementById('scNum').textContent = `Scenario ${current + 1} of ${questions.length}`;
+    document.getElementById('scText').textContent = q.scenario;
+    document.getElementById('scQ').textContent = q.question;
+    document.getElementById('pb').style.width = (current / questions.length * 100) + '%';
+
+    const opts = document.getElementById('options');
+    opts.innerHTML = '';
+    q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(i);
+        opts.appendChild(btn);
+    });
+
+    document.getElementById('explanation').style.display = 'none';
+    document.getElementById('nextBtn').style.display = 'none';
+    answered = false;
+}
+
+function selectAnswer(i) {
+    if (answered) return;
+    answered = true;
+    const q = questions[current];
+    const btns = document.querySelectorAll('.option-btn');
+    btns.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === q.correct) btn.classList.add('reveal');
+        if (idx === i && i !== q.correct) btn.classList.add('wrong');
+        if (idx === i && i === q.correct) btn.classList.add('correct');
+    });
+
+    if (i === q.correct) {
+        score++;
+    } else {
+        missed.push({ bias: q.bias, explanation: q.explanation });
+    }
+
+    const exp = document.getElementById('explanation');
+    exp.style.display = 'block';
+    exp.innerHTML = `<strong>🧠 ${q.bias}:</strong> ${q.explanation}`;
+    document.getElementById('nextBtn').style.display = 'inline-block';
+    document.getElementById('nextBtn').textContent = current < questions.length - 1 ? 'Next Scenario →' : 'See Results';
+}
+
+function nextQuestion() {
+    current++;
+    if (current >= questions.length) {
+        showResults();
+    } else {
+        render();
+    }
+}
+
+function showResults() {
+    document.getElementById('pb').style.width = '100%';
+    document.getElementById('quizArea').style.display = 'none';
+    const results = document.getElementById('results');
+    results.style.display = 'block';
+    document.getElementById('finalScore').textContent = `${score}/${questions.length}`;
+
+    const summary = document.getElementById('biasSummary');
+    if (missed.length === 0) {
+        summary.innerHTML = '<div class="bias-item" style="background:#d4edda"><strong>Perfect score!</strong> You have a strong grasp of cognitive biases in finance.</div>';
+    } else {
+        summary.innerHTML = '<p style="font-size:14px;font-weight:600;margin-bottom:8px;color:#555;">Biases to review:</p>' +
+            missed.map(m => `<div class="bias-item"><strong>${m.bias}:</strong> ${m.explanation}</div>`).join('');
+    }
+}
+
+function restart() {
+    current = 0; score = 0; answered = false; missed = [];
+    document.getElementById('quizArea').style.display = 'block';
+    document.getElementById('results').style.display = 'none';
+    render();
+}
+
+render();
+</script>
+</body>
+</html>

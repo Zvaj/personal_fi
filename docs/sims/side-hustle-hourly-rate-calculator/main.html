@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Side Hustle Hourly Rate Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .big-result { text-align: center; padding: 20px; border-radius: 12px; margin-bottom: 20px; }
+        .big-result .rate { font-size: 56px; font-weight: 900; }
+        .big-result .label { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .big-result .caveat { font-size: 12px; color: #666; margin-top: 6px; }
+        .good { background: #d4edda; }
+        .good .rate { color: #155724; }
+        .ok { background: #fff3cd; }
+        .ok .rate { color: #856404; }
+        .poor { background: #f8d7da; }
+        .poor .rate { color: #721c24; }
+        .breakdown { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat { background: #f0f7fa; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat .val { font-size: 20px; font-weight: 800; color: #1a5f7a; }
+        .stat .lbl { font-size: 11px; color: #666; margin-top: 3px; }
+        .hours-breakdown { margin-bottom: 20px; }
+        .hours-breakdown h3 { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; }
+        .hours-row { display: flex; justify-content: space-between; font-size: 13px; padding: 7px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 5px; }
+        .hours-row.total { background: #f0f7fa; font-weight: 700; }
+        .tip { background: #f0f7fa; border-left: 4px solid #1a5f7a; padding: 12px 16px; font-size: 13px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Side Hustle Hourly Rate Calculator</h1>
+    <p class="subtitle">Find your true hourly rate after all expenses, unpaid time, and self-employment tax.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Monthly Gross Revenue ($)</label>
+            <div class="input-row">
+                <input type="range" id="revenue" min="0" max="10000" step="50" value="800" oninput="sync('revenue',this.value)">
+                <input type="number" id="revenueNum" value="800" min="0" max="10000" oninput="sync('revenue',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Monthly Expenses ($)</label>
+            <div class="input-row">
+                <input type="range" id="expenses" min="0" max="5000" step="25" value="50" oninput="sync('expenses',this.value)">
+                <input type="number" id="expensesNum" value="50" min="0" max="5000" oninput="sync('expenses',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Hours Worked (paid time) /mo</label>
+            <div class="input-row">
+                <input type="range" id="paidHours" min="1" max="160" step="1" value="20" oninput="sync('paidHours',this.value)">
+                <input type="number" id="paidHoursNum" value="20" min="1" max="160" oninput="sync('paidHours',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Unpaid Hours (admin, marketing) /mo</label>
+            <div class="input-row">
+                <input type="range" id="unpaidHours" min="0" max="80" step="1" value="5" oninput="sync('unpaidHours',this.value)">
+                <input type="number" id="unpaidHoursNum" value="5" min="0" max="80" oninput="sync('unpaidHours',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="big-result" id="bigResult">
+        <div class="label">True Hourly Rate</div>
+        <div class="rate" id="trueRate">$0/hr</div>
+        <div class="caveat" id="rateCaveat"></div>
+    </div>
+
+    <div class="breakdown">
+        <div class="stat">
+            <div class="val" id="grossRate">$0</div>
+            <div class="lbl">Gross Rate (before tax)</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="seRate">$0</div>
+            <div class="lbl">SE Tax (15.3% on 92.35%)</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="netMonthly">$0</div>
+            <div class="lbl">Net Monthly Take-Home</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="totalHrs">0 hrs</div>
+            <div class="lbl">Total Monthly Hours</div>
+        </div>
+    </div>
+
+    <div class="hours-breakdown">
+        <h3>Where Your Time Goes</h3>
+        <div class="hours-row"><span>Paid work hours</span><span id="paidHrsDisplay">0 hrs</span></div>
+        <div class="hours-row"><span>Admin / marketing / setup</span><span id="unpaidHrsDisplay">0 hrs</span></div>
+        <div class="hours-row total"><span>Total committed time</span><span id="totalHrsDisplay">0 hrs/mo</span></div>
+    </div>
+
+    <div class="tip" id="tip"></div>
+</div>
+<script>
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n, dec=0) { return '$' + n.toFixed(dec); }
+
+function recalc() {
+    const revenue = parseFloat(document.getElementById('revenue').value);
+    const expenses = parseFloat(document.getElementById('expenses').value);
+    const paidHours = parseFloat(document.getElementById('paidHours').value);
+    const unpaidHours = parseFloat(document.getElementById('unpaidHours').value);
+
+    const netRevenue = revenue - expenses;
+    // SE tax: 15.3% on 92.35% of net earnings
+    const seTax = Math.max(0, netRevenue * 0.9235 * 0.153);
+    const netAfterSE = Math.max(0, netRevenue - seTax);
+    const totalHours = paidHours + unpaidHours;
+    const trueRate = totalHours > 0 ? netAfterSE / totalHours : 0;
+    const grossRate = totalHours > 0 ? netRevenue / totalHours : 0;
+
+    document.getElementById('trueRate').textContent = fmt(trueRate, 2) + '/hr';
+    document.getElementById('grossRate').textContent = fmt(grossRate, 2) + '/hr';
+    document.getElementById('seRate').textContent = fmt(seTax, 0);
+    document.getElementById('netMonthly').textContent = fmt(netAfterSE, 0);
+    document.getElementById('totalHrs').textContent = totalHours + ' hrs';
+    document.getElementById('paidHrsDisplay').textContent = paidHours + ' hrs';
+    document.getElementById('unpaidHrsDisplay').textContent = unpaidHours + ' hrs';
+    document.getElementById('totalHrsDisplay').textContent = totalHours + ' hrs/mo';
+
+    const br = document.getElementById('bigResult');
+    let cls, caveat;
+    if (trueRate >= 25) {
+        cls = 'big-result good';
+        caveat = 'Strong rate! Above average for most side hustles.';
+    } else if (trueRate >= 15) {
+        cls = 'big-result ok';
+        caveat = 'Decent rate. Look for ways to reduce unpaid overhead time.';
+    } else {
+        cls = 'big-result poor';
+        caveat = 'Below minimum wage territory after unpaid time. Consider if this hustle is worth it.';
+    }
+    br.className = cls;
+    document.getElementById('rateCaveat').textContent = caveat;
+
+    let tipText;
+    if (unpaidHours > paidHours * 0.5) {
+        tipText = `💡 Unpaid overhead (${unpaidHours} hrs) is more than 50% of your paid time (${paidHours} hrs). Streamline admin tasks, use templates, or raise your rates to compensate.`;
+    } else if (trueRate < 15) {
+        tipText = `💡 Your true rate of ${fmt(trueRate,2)}/hr is low. Try raising prices, reducing expenses, or cutting unpaid overhead. A 10% price increase on ${fmt(revenue)} = ${fmt(revenue*0.1)} more with zero extra time.`;
+    } else {
+        tipText = `💡 To raise your rate: (1) Increase prices — clients expect annual rate increases. (2) Cut unpaid time with better systems. (3) Focus on higher-value clients only.`;
+    }
+    document.getElementById('tip').textContent = tipText;
+}
+
+recalc();
+</script>
+</body>
+</html>

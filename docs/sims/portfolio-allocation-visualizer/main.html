@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Allocation Visualizer</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 850px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .main-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        @media(max-width:600px){ .main-grid { grid-template-columns: 1fr; } }
+        .controls h3 { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 14px; }
+        .alloc-row { margin-bottom: 14px; }
+        .alloc-row label { font-size: 12px; font-weight: 600; color: #555; display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .alloc-row label span { font-weight: 800; color: #1a5f7a; }
+        input[type="range"] { width: 100%; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; cursor: pointer; }
+        .crypto-slider::-webkit-slider-thumb { background: #e74c3c; }
+        .crypto-slider::-moz-range-thumb { background: #e74c3c; }
+        .other-slider::-webkit-slider-thumb { background: #1a5f7a; }
+        .stats-panel { display: flex; flex-direction: column; gap: 12px; }
+        .stat-row { background: #f0f7fa; border-radius: 8px; padding: 12px; }
+        .stat-row .label { font-size: 11px; text-transform: uppercase; color: #666; font-weight: 600; letter-spacing: 0.5px; }
+        .stat-row .value { font-size: 22px; font-weight: 800; color: #1a5f7a; }
+        .stat-row.warning { background: #f8d7da; }
+        .stat-row.warning .value { color: #721c24; }
+        .stat-row.ok { background: #d4edda; }
+        .stat-row.ok .value { color: #155724; }
+        .insight { padding: 14px 16px; border-radius: 8px; font-size: 13px; line-height: 1.5; margin-bottom: 20px; }
+        .insight.safe { background: #d4edda; border-left: 4px solid #28a745; }
+        .insight.caution { background: #fff3cd; border-left: 4px solid #ffc107; }
+        .insight.danger { background: #f8d7da; border-left: 4px solid #dc3545; }
+        .scenario-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        .scenario { border-radius: 8px; padding: 12px; text-align: center; font-size: 12px; border: 2px solid #e9ecef; }
+        .scenario .title { font-weight: 700; margin-bottom: 4px; }
+        .scenario .result { font-size: 18px; font-weight: 800; }
+        .scenario.loss .result { color: #dc3545; }
+        .scenario.gain .result { color: #28a745; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Portfolio Allocation Visualizer</h1>
+    <p class="subtitle">See how different crypto allocations affect your overall portfolio risk and outcomes.</p>
+
+    <div class="main-grid">
+        <div class="controls">
+            <h3>Adjust Your Portfolio</h3>
+            <div class="alloc-row">
+                <label>Crypto (Bitcoin, Ethereum, etc.) <span id="cryptoPct">5%</span></label>
+                <input type="range" class="crypto-slider" id="cryptoSlider" min="0" max="80" step="1" value="5" style="background:#e0e0e0" oninput="updateCrypto(this.value)">
+            </div>
+            <div class="alloc-row">
+                <label>Index Funds (S&P 500, etc.) <span id="indexPct">70%</span></label>
+                <input type="range" class="other-slider" id="indexSlider" min="0" max="95" step="1" value="70" style="background:#e0e0e0" oninput="recalc()">
+            </div>
+            <div class="alloc-row">
+                <label>Bonds / Stable <span id="bondPct">15%</span></label>
+                <input type="range" class="other-slider" id="bondSlider" min="0" max="95" step="1" value="15" style="background:#e0e0e0" oninput="recalc()">
+            </div>
+            <div class="alloc-row">
+                <label>Cash / Money Market <span id="cashPct">10%</span></label>
+                <input type="range" class="other-slider" id="cashSlider" min="0" max="50" step="1" value="10" style="background:#e0e0e0" oninput="recalc()">
+            </div>
+            <canvas id="pieChart" height="180"></canvas>
+        </div>
+        <div class="stats-panel">
+            <div class="stat-row" id="volCard">
+                <div class="label">Portfolio Volatility (Annual)</div>
+                <div class="value" id="volValue">—</div>
+            </div>
+            <div class="stat-row" id="expRetCard">
+                <div class="label">Expected Annual Return</div>
+                <div class="value" id="expRetValue">—</div>
+            </div>
+            <div class="stat-row" id="worstCard">
+                <div class="label">Worst-Year Estimate (95th pct)</div>
+                <div class="value" id="worstValue">—</div>
+            </div>
+            <div class="stat-row" id="sharpeCard">
+                <div class="label">Risk-Adjusted Score</div>
+                <div class="value" id="sharpeValue">—</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="insight" id="insight"></div>
+
+    <h3 style="font-size:14px;font-weight:700;color:#555;margin-bottom:12px;">Scenarios: Impact on a $10,000 Portfolio</h3>
+    <div class="scenario-grid" id="scenarios"></div>
+</div>
+<script>
+let pieChart;
+
+// Expected annual return and volatility by asset
+const assets = {
+    crypto:  { ret: 0.25, vol: 0.80, color: '#e74c3c' },
+    index:   { ret: 0.10, vol: 0.15, color: '#1a5f7a' },
+    bonds:   { ret: 0.04, vol: 0.05, color: '#28a745' },
+    cash:    { ret: 0.05, vol: 0.01, color: '#ffc107' }
+};
+
+function updateCrypto(val) {
+    document.getElementById('cryptoSlider').value = val;
+    recalc();
+}
+
+function recalc() {
+    const crypto = parseFloat(document.getElementById('cryptoSlider').value) / 100;
+    const index  = parseFloat(document.getElementById('indexSlider').value) / 100;
+    const bonds  = parseFloat(document.getElementById('bondSlider').value) / 100;
+    const cash   = parseFloat(document.getElementById('cashSlider').value) / 100;
+    const total = crypto + index + bonds + cash;
+
+    // Normalize
+    const nc = total > 0 ? crypto/total : 0;
+    const ni = total > 0 ? index/total : 0;
+    const nb = total > 0 ? bonds/total : 0;
+    const nca = total > 0 ? cash/total : 0;
+
+    document.getElementById('cryptoPct').textContent = Math.round(nc*100) + '%';
+    document.getElementById('indexPct').textContent = Math.round(ni*100) + '%';
+    document.getElementById('bondPct').textContent = Math.round(nb*100) + '%';
+    document.getElementById('cashPct').textContent = Math.round(nca*100) + '%';
+
+    // Portfolio stats (simplified: weighted average, correlation ignored for simplicity)
+    const expRet = nc*assets.crypto.ret + ni*assets.index.ret + nb*assets.bonds.ret + nca*assets.cash.ret;
+    const portVol = Math.sqrt(
+        Math.pow(nc*assets.crypto.vol, 2) +
+        Math.pow(ni*assets.index.vol, 2) +
+        Math.pow(nb*assets.bonds.vol, 2) +
+        Math.pow(nca*assets.cash.vol, 2) +
+        2*nc*ni*assets.crypto.vol*assets.index.vol*0.2 // low correlation
+    );
+    const worst = -(portVol * 1.645 - expRet); // 95th pct VaR
+    const sharpe = (expRet - 0.05) / portVol;
+
+    document.getElementById('volValue').textContent = (portVol*100).toFixed(1) + '%/yr';
+    document.getElementById('expRetValue').textContent = '+' + (expRet*100).toFixed(1) + '%/yr';
+    document.getElementById('worstValue').textContent = (worst > 0 ? '-' : '+') + (Math.abs(worst)*100).toFixed(1) + '% (1 yr)';
+    document.getElementById('sharpeValue').textContent = sharpe.toFixed(2) + ' (higher = better)';
+
+    const volCard = document.getElementById('volCard');
+    const worstCard = document.getElementById('worstCard');
+    const sharpeCard = document.getElementById('sharpeCard');
+    if (portVol > 0.25) { volCard.className = 'stat-row warning'; } else { volCard.className = 'stat-row ok'; }
+    if (worst > 0.15) { worstCard.className = 'stat-row warning'; } else { worstCard.className = 'stat-row ok'; }
+    if (sharpe > 0.5) { sharpeCard.className = 'stat-row ok'; } else { sharpeCard.className = 'stat-row warning'; }
+
+    // Insight
+    const insight = document.getElementById('insight');
+    const cryptoPctDisplay = Math.round(nc*100);
+    if (cryptoPctDisplay <= 5) {
+        insight.className = 'insight safe';
+        insight.innerHTML = `<strong>✓ Conservative crypto allocation (${cryptoPctDisplay}%).</strong> If crypto drops 80%, you lose only ${(nc*0.8*100).toFixed(1)}% of your total portfolio. Your index funds and bonds provide a strong foundation.`;
+    } else if (cryptoPctDisplay <= 15) {
+        insight.className = 'insight caution';
+        insight.innerHTML = `<strong>⚠ Moderate crypto risk (${cryptoPctDisplay}%).</strong> An 80% crypto crash would cost you ${(nc*0.8*100).toFixed(1)}% of your portfolio. This is manageable but above the 5% rule most advisors recommend.`;
+    } else {
+        insight.className = 'insight danger';
+        insight.innerHTML = `<strong>⚠ High crypto concentration (${cryptoPctDisplay}%).</strong> An 80% crash (which has happened) would wipe out ${(nc*0.8*100).toFixed(1)}% of your portfolio value. The risk-reward tradeoff gets worse, not better, beyond 5-10%.`;
+    }
+
+    // Scenarios
+    const investment = 10000;
+    const scenariosData = [
+        { name: 'Crypto +200%', cryptoReturn: 2.0, indexReturn: 0.10, bondsReturn: 0.04, cashReturn: 0.05 },
+        { name: 'Crypto -80%', cryptoReturn: -0.80, indexReturn: 0.10, bondsReturn: 0.04, cashReturn: 0.05 },
+        { name: 'Crypto → $0', cryptoReturn: -1.0, indexReturn: 0.10, bondsReturn: 0.04, cashReturn: 0.05 },
+        { name: 'Bull market +30%', cryptoReturn: 0.50, indexReturn: 0.30, bondsReturn: 0.05, cashReturn: 0.05 },
+        { name: 'Bear market -30%', cryptoReturn: -0.60, indexReturn: -0.30, bondsReturn: 0.02, cashReturn: 0.04 }
+    ];
+    document.getElementById('scenarios').innerHTML = scenariosData.map(s => {
+        const gain = (nc*s.cryptoReturn + ni*s.indexReturn + nb*s.bondsReturn + nca*s.cashReturn) * investment;
+        const isLoss = gain < 0;
+        return `<div class="scenario ${isLoss ? 'loss' : 'gain'}">
+            <div class="title">${s.name}</div>
+            <div class="result">${isLoss ? '-$' : '+$'}${Math.abs(Math.round(gain)).toLocaleString()}</div>
+            <div style="font-size:11px;color:#666;margin-top:2px">${isLoss ? '' : '+'}${(gain/investment*100).toFixed(1)}%</div>
+        </div>`;
+    }).join('');
+
+    // Pie chart
+    const pieData = [Math.round(nc*100), Math.round(ni*100), Math.round(nb*100), Math.round(nca*100)];
+    if (!pieChart) {
+        pieChart = new Chart(document.getElementById('pieChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Crypto', 'Index Funds', 'Bonds', 'Cash'],
+                datasets: [{ data: pieData, backgroundColor: ['#e74c3c','#1a5f7a','#28a745','#ffc107'], borderWidth: 2 }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+        });
+    } else {
+        pieChart.data.datasets[0].data = pieData;
+        pieChart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

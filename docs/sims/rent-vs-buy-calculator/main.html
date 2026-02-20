@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rent vs. Buy Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 18px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 12px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .summary { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .summary-card { border-radius: 10px; padding: 16px; }
+        .rent-card { background: #e8f4f8; border: 2px solid #1a5f7a; }
+        .buy-card { background: #fff3e6; border: 2px solid #fd7e14; }
+        .summary-card h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; }
+        .rent-card h3 { color: #1a5f7a; }
+        .buy-card h3 { color: #c85c00; }
+        .summary-card .monthly { font-size: 28px; font-weight: 800; margin-bottom: 4px; }
+        .rent-card .monthly { color: #1a5f7a; }
+        .buy-card .monthly { color: #c85c00; }
+        .breakdown { font-size: 12px; color: #666; }
+        .breakeven-box { text-align: center; padding: 14px; border-radius: 10px; margin-bottom: 20px; font-size: 14px; font-weight: 600; }
+        .breakeven-early { background: #d4edda; color: #155724; }
+        .breakeven-late { background: #fff3cd; color: #856404; }
+        .breakeven-never { background: #f8d7da; color: #721c24; }
+        @media(max-width:580px){ .summary { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Rent vs. Buy Calculator</h1>
+    <p class="subtitle">See the true cost of buying vs. renting and when buying breaks even.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Monthly Rent ($)</label>
+            <div class="input-row">
+                <input type="range" id="rent" min="500" max="5000" step="50" value="1500" oninput="sync('rent',this.value)">
+                <input type="number" id="rentNum" value="1500" min="500" max="5000" oninput="sync('rent',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Home Price ($)</label>
+            <div class="input-row">
+                <input type="range" id="homePrice" min="100000" max="1000000" step="5000" value="300000" oninput="sync('homePrice',this.value)">
+                <input type="number" id="homePriceNum" value="300000" min="100000" max="1000000" oninput="sync('homePrice',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Down Payment (%)</label>
+            <div class="input-row">
+                <input type="range" id="downPct" min="3" max="30" step="1" value="10" oninput="sync('downPct',this.value)">
+                <input type="number" id="downPctNum" value="10" min="3" max="30" oninput="sync('downPct',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Mortgage Rate (%)</label>
+            <div class="input-row">
+                <input type="range" id="mortgageRate" min="3" max="10" step="0.1" value="6.8" oninput="sync('mortgageRate',this.value)">
+                <input type="number" id="mortgageRateNum" value="6.8" min="3" max="10" step="0.1" oninput="sync('mortgageRate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Home Appreciation (%/yr)</label>
+            <div class="input-row">
+                <input type="range" id="appreciation" min="0" max="8" step="0.5" value="3" oninput="sync('appreciation',this.value)">
+                <input type="number" id="appreciationNum" value="3" min="0" max="8" step="0.5" oninput="sync('appreciation',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Investment Return (if renting) (%/yr)</label>
+            <div class="input-row">
+                <input type="range" id="investReturn" min="4" max="12" step="0.5" value="8" oninput="sync('investReturn',this.value)">
+                <input type="number" id="investReturnNum" value="8" min="4" max="12" step="0.5" oninput="sync('investReturn',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="summary">
+        <div class="summary-card rent-card">
+            <h3>Renting</h3>
+            <div class="monthly" id="rentMonthly">$0/mo</div>
+            <div class="breakdown" id="rentBreakdown"></div>
+        </div>
+        <div class="summary-card buy-card">
+            <h3>Buying</h3>
+            <div class="monthly" id="buyMonthly">$0/mo</div>
+            <div class="breakdown" id="buyBreakdown"></div>
+        </div>
+    </div>
+
+    <div class="breakeven-box" id="breakevenBox"></div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+function g(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function recalc() {
+    const monthlyRent = g('rent');
+    const homePrice = g('homePrice');
+    const downPct = g('downPct') / 100;
+    const mortgageRate = g('mortgageRate') / 100;
+    const appreciation = g('appreciation') / 100;
+    const investReturn = g('investReturn') / 100;
+
+    const downPayment = homePrice * downPct;
+    const loanAmount = homePrice - downPayment;
+    const r = mortgageRate / 12;
+    const n = 360; // 30-yr
+    const mortgagePayment = loanAmount * (r * Math.pow(1+r,n)) / (Math.pow(1+r,n) - 1);
+    const propertyTax = homePrice * 0.012 / 12; // 1.2%/yr
+    const insurance = homePrice * 0.005 / 12;   // 0.5%/yr
+    const maintenance = homePrice * 0.01 / 12;  // 1%/yr
+    const totalBuyMonthly = mortgagePayment + propertyTax + insurance + maintenance;
+
+    document.getElementById('rentMonthly').textContent = fmt(monthlyRent) + '/mo';
+    document.getElementById('rentBreakdown').innerHTML = `Rent: ${fmt(monthlyRent)}<br>If you invest the difference each month`;
+
+    document.getElementById('buyMonthly').textContent = fmt(totalBuyMonthly) + '/mo';
+    document.getElementById('buyBreakdown').innerHTML = `Mortgage: ${fmt(mortgagePayment)}<br>Taxes+Insurance: ${fmt(propertyTax+insurance)}<br>Maintenance: ${fmt(maintenance)}<br><strong>Down payment needed: ${fmt(downPayment)}</strong>`;
+
+    // Calculate net worth over 30 years for each path
+    const years = 30;
+    const rentNetWorth = [];
+    const buyNetWorth = [];
+    const labels = [];
+
+    // Renter invests down payment + monthly difference
+    const rentMonthlyInvest = Math.max(0, totalBuyMonthly - monthlyRent);
+    const lumpSumInvested = downPayment;
+
+    // Track break-even year
+    let breakevenYear = null;
+
+    for (let y = 0; y <= years; y++) {
+        labels.push('Yr ' + y);
+
+        // Renter: invested lump sum + monthly savings growing at investReturn
+        const nm = y * 12;
+        const rm = investReturn / 12;
+        const rentPortfolio = lumpSumInvested * Math.pow(1+rm,nm) + rentMonthlyInvest * ((Math.pow(1+rm,nm)-1)/rm);
+        rentNetWorth.push(Math.round(rentPortfolio));
+
+        // Buyer: home equity = home value - remaining mortgage
+        const homeValue = homePrice * Math.pow(1+appreciation, y);
+        // Remaining mortgage balance
+        let bal = loanAmount;
+        for (let m = 0; m < y*12; m++) { bal = bal * (1+r) - mortgagePayment; }
+        const equity = Math.max(0, homeValue - Math.max(0, bal));
+        buyNetWorth.push(Math.round(equity));
+
+        if (breakevenYear === null && y > 0 && equity >= rentPortfolio) {
+            breakevenYear = y;
+        }
+    }
+
+    const bb = document.getElementById('breakevenBox');
+    if (breakevenYear !== null && breakevenYear <= 30) {
+        bb.className = 'breakeven-box ' + (breakevenYear <= 7 ? 'breakeven-early' : 'breakeven-late');
+        bb.textContent = `Buying breaks even after ${breakevenYear} year${breakevenYear > 1 ? 's' : ''}. ${breakevenYear <= 5 ? 'Buying makes financial sense if you plan to stay that long.' : 'Renting + investing beats buying until year ' + breakevenYear + '.'}`;
+    } else {
+        bb.className = 'breakeven-box breakeven-never';
+        bb.textContent = `With these numbers, renting + investing outperforms buying over 30 years. This is common in high-cost cities. Consider adjusting the appreciation rate or down payment.`;
+    }
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Renter Net Worth (invested)', data: rentNetWorth, borderColor: '#1a5f7a', backgroundColor: '#1a5f7a15', tension: 0.3, borderWidth: 2 },
+                    { label: 'Buyer Home Equity', data: buyNetWorth, borderColor: '#fd7e14', backgroundColor: '#fd7e1415', tension: 0.3, borderWidth: 2 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' }, title: { display: true, text: 'Net Worth Comparison Over 30 Years' } },
+                scales: { y: { ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } } }
+            }
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = rentNetWorth;
+        chart.data.datasets[1].data = buyNetWorth;
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

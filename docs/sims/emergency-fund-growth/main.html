@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Fund Growth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .goal-tracker { padding: 20px; border-radius: 12px; margin-bottom: 20px; background: #f0f7fa; border: 2px solid #1a5f7a; }
+        .goal-tracker .progress-label { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+        .goal-bar-wrap { background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden; margin-bottom: 10px; }
+        .goal-bar { background: #1a5f7a; height: 24px; border-radius: 8px; transition: width 0.5s; display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+        .goal-bar span { color: white; font-size: 12px; font-weight: 700; }
+        .goal-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 10px; }
+        .g-stat { text-align: center; }
+        .g-stat .val { font-size: 22px; font-weight: 800; color: #1a5f7a; }
+        .g-stat .lbl { font-size: 11px; color: #666; }
+        .milestone-list { margin-bottom: 20px; }
+        .milestone-list h3 { font-size: 14px; font-weight: 700; color: #555; margin-bottom: 10px; }
+        .milestone { display: flex; justify-content: space-between; padding: 8px 12px; border-radius: 6px; margin-bottom: 5px; font-size: 13px; background: #f8f9fa; }
+        .milestone.reached { background: #d4edda; font-weight: 600; color: #155724; }
+        .milestone.reached::before { content: "✓ "; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Emergency Fund Growth Calculator</h1>
+    <p class="subtitle">Track your path to a 3-6 month emergency fund in a high-yield savings account.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Monthly Essential Expenses ($)</label>
+            <div class="input-row">
+                <input type="range" id="expenses" min="500" max="8000" step="50" value="2500" oninput="sync('expenses',this.value)">
+                <input type="number" id="expensesNum" value="2500" oninput="sync('expenses',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Current Savings ($)</label>
+            <div class="input-row">
+                <input type="range" id="current" min="0" max="20000" step="100" value="1000" oninput="sync('current',this.value)">
+                <input type="number" id="currentNum" value="1000" oninput="sync('current',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Monthly Contribution ($)</label>
+            <div class="input-row">
+                <input type="range" id="monthly" min="25" max="2000" step="25" value="300" oninput="sync('monthly',this.value)">
+                <input type="number" id="monthlyNum" value="300" oninput="sync('monthly',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>HYSA APY (%)</label>
+            <div class="input-row">
+                <input type="range" id="rate" min="1" max="6" step="0.1" value="4.5" oninput="sync('rate',this.value)">
+                <input type="number" id="rateNum" value="4.5" step="0.1" oninput="sync('rate',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="goal-tracker">
+        <div class="progress-label">
+            <span>Progress to 3-Month Goal</span>
+            <span id="progressPct">0%</span>
+        </div>
+        <div class="goal-bar-wrap">
+            <div class="goal-bar" id="goalBar" style="width:0%"><span id="goalBarLabel"></span></div>
+        </div>
+        <div class="goal-stats">
+            <div class="g-stat"><div class="val" id="target3mo">$0</div><div class="lbl">3-Month Target</div></div>
+            <div class="g-stat"><div class="val" id="target6mo">$0</div><div class="lbl">6-Month Target</div></div>
+            <div class="g-stat"><div class="val" id="months3mo">0 mo</div><div class="lbl">Months to 3-Month Goal</div></div>
+            <div class="g-stat"><div class="val" id="months6mo">0 mo</div><div class="lbl">Months to 6-Month Goal</div></div>
+        </div>
+    </div>
+
+    <div class="milestone-list">
+        <h3>Milestones</h3>
+        <div id="milestones"></div>
+    </div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function recalc() {
+    const expenses = parseFloat(document.getElementById('expenses').value);
+    const current = parseFloat(document.getElementById('current').value);
+    const monthly = parseFloat(document.getElementById('monthly').value);
+    const rate = parseFloat(document.getElementById('rate').value) / 100;
+
+    const target3 = expenses * 3;
+    const target6 = expenses * 6;
+    const pct = Math.min(100, Math.round(current / target3 * 100));
+
+    document.getElementById('target3mo').textContent = fmt(target3);
+    document.getElementById('target6mo').textContent = fmt(target6);
+    document.getElementById('progressPct').textContent = pct + '%';
+    document.getElementById('goalBar').style.width = pct + '%';
+    document.getElementById('goalBarLabel').textContent = pct >= 15 ? pct + '%' : '';
+
+    // Months to reach goals
+    const r = rate / 12;
+    let balance = current;
+    let months3 = null, months6 = null;
+    const monthData = [current];
+    const labels = ['Now'];
+
+    for (let m = 1; m <= 60; m++) {
+        balance = balance * (1 + r) + monthly;
+        monthData.push(Math.round(balance));
+        labels.push('Mo ' + m);
+        if (months3 === null && balance >= target3) months3 = m;
+        if (months6 === null && balance >= target6) months6 = m;
+    }
+
+    document.getElementById('months3mo').textContent = months3 !== null ? months3 + ' mo' : '>5 yrs';
+    document.getElementById('months6mo').textContent = months6 !== null ? months6 + ' mo' : '>5 yrs';
+
+    // Milestones
+    const milestoneTargets = [
+        { label: 'Starter: $1,000 buffer', amt: 1000 },
+        { label: '1-month expenses', amt: expenses },
+        { label: '3-month goal (recommended)', amt: target3 },
+        { label: '6-month goal (ideal)', amt: target6 }
+    ];
+
+    document.getElementById('milestones').innerHTML = milestoneTargets.map(m => {
+        const reached = current >= m.amt;
+        let timeStr = '';
+        if (!reached) {
+            let bal = current, mo = 0;
+            while (bal < m.amt && mo < 120) { bal = bal * (1+r) + monthly; mo++; }
+            timeStr = mo < 120 ? ` — reach in ~${mo} months` : ' — increase contributions';
+        }
+        return `<div class="milestone ${reached ? 'reached' : ''}">
+            <span>${m.label}${timeStr}</span>
+            <span style="font-weight:700">${fmt(m.amt)}</span>
+        </div>`;
+    }).join('');
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Emergency Fund Balance', data: monthData, borderColor: '#1a5f7a', backgroundColor: '#1a5f7a20', tension: 0.3, borderWidth: 2, pointRadius: 0, pointHoverRadius: 4 },
+                    { label: '3-Month Goal', data: Array(61).fill(Math.round(target3)), borderColor: '#28a745', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 },
+                    { label: '6-Month Goal', data: Array(61).fill(Math.round(target6)), borderColor: '#fd7e14', borderDash: [5,5], pointRadius: 0, borderWidth: 1.5 }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { ticks: { callback: v => '$' + v.toLocaleString() } } }
+            }
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = monthData;
+        chart.data.datasets[1].data = Array(61).fill(Math.round(target3));
+        chart.data.datasets[2].data = Array(61).fill(Math.round(target6));
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

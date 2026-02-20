@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>529 Plan Growth Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 80px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat { background: #f0f7fa; border-radius: 10px; padding: 14px; text-align: center; }
+        .stat .val { font-size: 26px; font-weight: 800; color: #1a5f7a; }
+        .stat .lbl { font-size: 12px; color: #666; margin-top: 4px; }
+        .stat-growth { background: #d4edda; }
+        .stat-growth .val { color: #155724; }
+        .info-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 16px; border-radius: 6px; font-size: 13px; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>529 Plan Growth Calculator</h1>
+    <p class="subtitle">See how tax-free compound growth works for college savings over time.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Monthly Contribution ($)</label>
+            <div class="input-row">
+                <input type="range" id="monthly" min="25" max="1000" step="25" value="200" oninput="sync('monthly',this.value)">
+                <input type="number" id="monthlyNum" value="200" min="25" max="1000" step="25" oninput="sync('monthly',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Years Until College</label>
+            <div class="input-row">
+                <input type="range" id="years" min="1" max="18" step="1" value="18" oninput="sync('years',this.value)">
+                <input type="number" id="yearsNum" value="18" min="1" max="18" step="1" oninput="sync('years',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Annual Return (%)</label>
+            <div class="input-row">
+                <input type="range" id="rate" min="3" max="12" step="0.5" value="7" oninput="sync('rate',this.value)">
+                <input type="number" id="rateNum" value="7" min="3" max="12" step="0.5" oninput="sync('rate',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Starting Balance ($)</label>
+            <div class="input-row">
+                <input type="range" id="start" min="0" max="50000" step="500" value="0" oninput="sync('start',this.value)">
+                <input type="number" id="startNum" value="0" min="0" max="50000" step="500" oninput="sync('start',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="val" id="contributed">$0</div>
+            <div class="lbl">Total Contributed</div>
+        </div>
+        <div class="stat stat-growth">
+            <div class="val" id="growth">$0</div>
+            <div class="lbl">Tax-Free Growth</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="finalBalance">$0</div>
+            <div class="lbl">Final Balance</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="multiplier">0×</div>
+            <div class="lbl">Growth Multiplier</div>
+        </div>
+    </div>
+
+    <div class="info-box" id="infoBox"></div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function recalc() {
+    const monthly = parseFloat(document.getElementById('monthly').value);
+    const years = parseInt(document.getElementById('years').value);
+    const rate = parseFloat(document.getElementById('rate').value) / 100;
+    const start = parseFloat(document.getElementById('start').value);
+
+    const r = rate / 12;
+    const n = years * 12;
+    const future = start * Math.pow(1 + r, n) + monthly * ((Math.pow(1 + r, n) - 1) / r);
+    const totalContrib = start + monthly * n;
+    const growth = future - totalContrib;
+
+    document.getElementById('contributed').textContent = fmt(totalContrib);
+    document.getElementById('growth').textContent = fmt(growth);
+    document.getElementById('finalBalance').textContent = fmt(future);
+    document.getElementById('multiplier').textContent = (future / Math.max(totalContrib, 1)).toFixed(1) + '×';
+
+    const ibText = years >= 10
+        ? `Starting early pays off: you contributed ${fmt(totalContrib)} of your own money, but compound growth added another ${fmt(growth)} — completely tax-free.`
+        : `With only ${years} year${years>1?'s':''} to grow, starting earlier would significantly increase your balance. Even small monthly amounts add up over 18 years.`;
+    document.getElementById('infoBox').textContent = ibText;
+
+    // Build year-by-year chart data
+    const labels = [];
+    const contribData = [];
+    const growthData = [];
+
+    for (let y = 0; y <= years; y++) {
+        const ni = y * 12;
+        const bal = start * Math.pow(1 + r, ni) + monthly * ((Math.pow(1 + r, ni) - 1) / r);
+        const contrib = start + monthly * ni;
+        labels.push('Yr ' + y);
+        contribData.push(Math.round(contrib));
+        growthData.push(Math.round(bal - contrib));
+    }
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Contributions', data: contribData, backgroundColor: '#1a5f7a80', borderColor: '#1a5f7a', borderWidth: 1, borderRadius: 3 },
+                    { label: 'Tax-Free Growth', data: growthData, backgroundColor: '#28a74580', borderColor: '#28a745', borderWidth: 1, borderRadius: 3 }
+                ]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v) } } } }
+        });
+    } else {
+        chart.data.labels = labels;
+        chart.data.datasets[0].data = contribData;
+        chart.data.datasets[1].data = growthData;
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>

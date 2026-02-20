@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dividend Income Calculator</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: #f8f9fa; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); padding: 24px; }
+        h1 { font-size: 22px; margin-bottom: 6px; color: #1a5f7a; text-align: center; }
+        .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .control-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; font-weight: 600; color: #555; }
+        .input-row { display: flex; gap: 10px; align-items: center; }
+        input[type="range"] { flex: 1; height: 6px; border-radius: 3px; outline: none; -webkit-appearance: none; background: #e0e0e0; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1a5f7a; cursor: pointer; }
+        input[type="number"] { width: 90px; padding: 6px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; text-align: center; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 14px; margin-bottom: 24px; }
+        .stat { border-radius: 10px; padding: 14px; text-align: center; background: #f0f7fa; }
+        .stat .val { font-size: 28px; font-weight: 800; color: #1a5f7a; }
+        .stat .lbl { font-size: 12px; color: #666; margin-top: 4px; }
+        .goal-section { margin-bottom: 20px; }
+        .goal-section h3 { font-size: 14px; font-weight: 700; margin-bottom: 10px; color: #555; }
+        .goal-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #f8f9fa; border-radius: 6px; margin-bottom: 6px; font-size: 13px; }
+        .goal-item .needed { font-weight: 700; color: #1a5f7a; }
+        .goal-item.achievable { background: #d4edda; }
+        .goal-item.achievable .needed { color: #155724; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Dividend Income Calculator</h1>
+    <p class="subtitle">See how much passive income your portfolio generates from dividends.</p>
+
+    <div class="controls">
+        <div class="control-group">
+            <label>Portfolio Value ($)</label>
+            <div class="input-row">
+                <input type="range" id="portfolio" min="1000" max="2000000" step="1000" value="50000" oninput="sync('portfolio',this.value)">
+                <input type="number" id="portfolioNum" value="50000" min="1000" max="2000000" step="1000" oninput="sync('portfolio',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Dividend Yield (%)</label>
+            <div class="input-row">
+                <input type="range" id="yield" min="0.5" max="8" step="0.1" value="3" oninput="sync('yield',this.value)">
+                <input type="number" id="yieldNum" value="3" min="0.5" max="8" step="0.1" oninput="sync('yield',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Monthly Contribution ($)</label>
+            <div class="input-row">
+                <input type="range" id="monthly" min="0" max="3000" step="50" value="500" oninput="sync('monthly',this.value)">
+                <input type="number" id="monthlyNum" value="500" min="0" max="3000" step="50" oninput="sync('monthly',this.value)">
+            </div>
+        </div>
+        <div class="control-group">
+            <label>Years to Grow</label>
+            <div class="input-row">
+                <input type="range" id="years" min="1" max="40" step="1" value="20" oninput="sync('years',this.value)">
+                <input type="number" id="yearsNum" value="20" min="1" max="40" step="1" oninput="sync('years',this.value)">
+            </div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="stat">
+            <div class="val" id="monthlyIncome">$0</div>
+            <div class="lbl">Monthly Dividend Income (Now)</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="annualIncome">$0</div>
+            <div class="lbl">Annual Dividend Income (Now)</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="futureMonthly">$0</div>
+            <div class="lbl">Monthly Income After <span id="yearsLabel">20</span> Yrs</div>
+        </div>
+        <div class="stat">
+            <div class="val" id="futurePortfolio">$0</div>
+            <div class="lbl">Portfolio After <span id="yearsLabel2">20</span> Yrs</div>
+        </div>
+    </div>
+
+    <div class="goal-section">
+        <h3>Portfolio needed to reach income goals (at current yield)</h3>
+        <div id="goalList"></div>
+    </div>
+
+    <canvas id="chart"></canvas>
+</div>
+<script>
+let chart;
+function sync(id, val) {
+    document.getElementById(id).value = val;
+    document.getElementById(id + 'Num').value = val;
+    recalc();
+}
+function fmt(n) { return '$' + Math.round(n).toLocaleString(); }
+
+function recalc() {
+    const portfolio = parseFloat(document.getElementById('portfolio').value);
+    const yld = parseFloat(document.getElementById('yield').value) / 100;
+    const monthly = parseFloat(document.getElementById('monthly').value);
+    const years = parseInt(document.getElementById('years').value);
+
+    const annualIncome = portfolio * yld;
+    const monthlyIncome = annualIncome / 12;
+
+    document.getElementById('monthlyIncome').textContent = fmt(monthlyIncome);
+    document.getElementById('annualIncome').textContent = fmt(annualIncome);
+    document.getElementById('yearsLabel').textContent = years;
+    document.getElementById('yearsLabel2').textContent = years;
+
+    // Future portfolio (reinvest dividends + contributions, 7% total return)
+    const r = 0.07 / 12;
+    const n = years * 12;
+    const futurePort = portfolio * Math.pow(1+r, n) + monthly * ((Math.pow(1+r,n)-1)/r);
+    const futureMonthly = (futurePort * yld) / 12;
+
+    document.getElementById('futurePortfolio').textContent = fmt(futurePort);
+    document.getElementById('futureMonthly').textContent = fmt(futureMonthly);
+
+    // Goals
+    const goals = [
+        { label: 'Extra spending money ($200/mo)', target: 200 },
+        { label: 'Phone + streaming bill ($100/mo)', target: 100 },
+        { label: 'Replace part-time income ($1,000/mo)', target: 1000 },
+        { label: 'Replace full salary ($4,000/mo)', target: 4000 }
+    ];
+    const goalList = document.getElementById('goalList');
+    goalList.innerHTML = goals.map(g => {
+        const needed = (g.target * 12) / yld;
+        const achievable = portfolio >= needed;
+        return `<div class="goal-item ${achievable ? 'achievable' : ''}">
+            <span>${achievable ? '✓ ' : ''}${g.label}</span>
+            <span class="needed">${fmt(needed)} needed</span>
+        </div>`;
+    }).join('');
+
+    // Chart: portfolio and dividend income over time
+    const labelsArr = [];
+    const portData = [];
+    const divData = [];
+    for (let y = 0; y <= years; y++) {
+        const ni = y * 12;
+        const p = portfolio * Math.pow(1+r,ni) + monthly * ((Math.pow(1+r,ni)-1)/r);
+        labelsArr.push('Yr ' + y);
+        portData.push(Math.round(p));
+        divData.push(Math.round(p * yld / 12));
+    }
+
+    if (!chart) {
+        chart = new Chart(document.getElementById('chart'), {
+            type: 'line',
+            data: {
+                labels: labelsArr,
+                datasets: [
+                    { label: 'Portfolio Value', data: portData, borderColor: '#1a5f7a', backgroundColor: '#1a5f7a20', yAxisID: 'y', tension: 0.3 },
+                    { label: 'Monthly Dividend Income', data: divData, borderColor: '#28a745', backgroundColor: '#28a74520', yAxisID: 'y2', tension: 0.3 }
+                ]
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    y: { type: 'linear', position: 'left', ticks: { callback: v => '$' + (v/1000).toFixed(0) + 'k' } },
+                    y2: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { callback: v => '$' + v.toLocaleString() } }
+                }
+            }
+        });
+    } else {
+        chart.data.labels = labelsArr;
+        chart.data.datasets[0].data = portData;
+        chart.data.datasets[1].data = divData;
+        chart.update();
+    }
+}
+
+recalc();
+</script>
+</body>
+</html>
